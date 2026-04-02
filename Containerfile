@@ -1,6 +1,6 @@
 ARG BASE=quay.io/fedora-ostree-desktops/kinoite:44.20260330.0
 
-FROM localhost/systemd-boot:f44 as systemd-boot
+# FROM ghcr.io/travier/fedora-atomic-desktops-sealed/systemd-boot:44 as systemd-boot
 
 FROM $BASE as rootfs
 
@@ -79,7 +79,7 @@ mkdir -p /boot/EFI/Linux
 #     /usr/lib64/libKF6*
 EORUN
 
-COPY --from=systemd-boot /systemd-bootx64.efi /usr/lib/systemd/boot/efi/systemd-bootx64.efi
+# COPY --from=systemd-boot /systemd-bootx64.efi /usr/lib/systemd/boot/efi/systemd-bootx64.efi
 
 FROM rootfs as lint
 RUN bootc container lint
@@ -105,6 +105,8 @@ ENV container=oci
 STOPSIGNAL SIGRTMIN+3
 CMD ["/sbin/init"]
 
+#    --mount=type=secret,id=secureboot_key \
+#    --mount=type=secret,id=secureboot_cert \
 FROM rootfs as sealed-uki
 RUN --mount=type=tmpfs,target=/run \
     --mount=type=tmpfs,target=/var/tmp \
@@ -137,6 +139,11 @@ fi
 ukifyargs=(--measure
            --json pretty
            --output "${output}/${kver}.efi")
+
+# Signing options, we use sbsign by default
+# ukifyargs+=(--signtool sbsign
+#             --secureboot-private-key "${secrets}/secureboot_key"
+#             --secureboot-certificate "${secrets}/secureboot_cert")
 
 # Baseline container ukify options
 containerukifyargs=(--rootfs "${target}")
