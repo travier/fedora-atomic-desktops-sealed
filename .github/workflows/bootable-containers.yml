@@ -45,11 +45,6 @@ jobs:
       - name: "Checkout repo"
         uses: actions/checkout@v6
 
-      - name: "Reclaim disk space"
-        run: |
-          echo $PWD
-          exit 1
-
       - name: "Runner setup"
         uses: bootc-dev/actions/bootc-ubuntu-setup@main
 
@@ -79,11 +74,10 @@ jobs:
           oci: true
           build-args: |
             BASE=quay.io/fedora-ostree-desktops/${{ matrix.variant }}:44.20260330.0
-          # FIXME
           extra-args: |
             --skip-unused-stages=false
             --security-opt=label=disable
-            --volume /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}:/run/src
+            --volume /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}:/run/src
 
       - name: "Setup cosign"
         uses: sigstore/cosign-installer@v3.10.0
