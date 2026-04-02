@@ -118,7 +118,7 @@ set -x
 rm -f "/etc/yum.repos.d/fedora-cisco-openh264.repo"
 
 # Install ukify & signing tools
-dnf install -y systemd-ukify sbsigntools
+dnf install -y systemd-ukify sbsigntools jq bootc
 
 target="/run/target"
 output="/boot/EFI/Linux"

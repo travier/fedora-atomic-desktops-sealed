@@ -45,6 +45,12 @@ jobs:
       - name: "Checkout repo"
         uses: actions/checkout@v6
 
+      - name: "Reclaim disk space"
+        run: |
+          sudo df -h .
+          sudo rm -rf "/usr/local/lib/android"
+          sudo df -h .
+
       - name: "Runner setup"
         uses: bootc-dev/actions/bootc-ubuntu-setup@main
 
