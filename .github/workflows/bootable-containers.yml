@@ -47,9 +47,8 @@ jobs:
 
       - name: "Reclaim disk space"
         run: |
-          sudo df -h .
-          sudo rm -rf "/usr/local/lib/android"
-          sudo df -h .
+          echo $PWD
+          exit 1
 
       - name: "Runner setup"
         uses: bootc-dev/actions/bootc-ubuntu-setup@main
