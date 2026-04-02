@@ -75,7 +75,7 @@ jobs:
           containerfiles: Containerfile
           layers: false
           oci: true
-          args: |
+          build-args: |
             BASE=quay.io/fedora-ostree-desktops/${{ matrix.variant }}:44.20260330.0
           # FIXME
           extra-args: |
