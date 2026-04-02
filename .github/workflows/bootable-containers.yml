@@ -38,7 +38,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: ['silverblue', 'kinoite']
+        # variant: ['silverblue', 'kinoite']
+        variant: ['kinoite']
         version: ['44']
     container:
       image: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}/buildroot:${{ matrix.version }}
