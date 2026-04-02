@@ -1,0 +1,107 @@
+# SPDX-FileCopyrightText: Timothée Ravier <tim@siosm.fr>
+# SPDX-License-Identifier: CC0-1.0
+
+name: "Build Sealed Bootable Container images"
+
+env:
+  REGISTRY: "ghcr.io/${{ github.repository_owner }}"
+  REPO_NAME: "${{ github.event.repository.name }}"
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+    branches:
+      - "main"
+  schedule:
+    - cron: '0 4 * * MON'
+  workflow_dispatch:
+
+# Allow:
+# - Read access to the repo content
+# - Write access to packages to allow access to GitHub container registry
+permissions:
+  contents: "read"
+  packages: "write"
+
+# Prevent multiple workflow runs from racing to ensure that pushes are made
+# sequentialy for the main branch. Also cancel in progress workflow runs for
+# pull requests only.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-image:
+    runs-on: "ubuntu-24.04"
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: ['silverblue', 'kinoite']
+        version: ['44']
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}/buildroot:${{ matrix.version }}
+      options: "--security-opt=label=disable --privileged --user 0:0 --device=/dev/kvm --device=/dev/fuse --volume /:/run/host:rw --pid=host"
+    steps:
+      - name: "Runner setup"
+        uses: ./.github/actions/setup
+
+      - name: "Login to Container Registry"
+        uses: redhat-actions/podman-login@v1
+        if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          auth_file_path: /tmp/auth.json
+
+      - name: "Checkout repo"
+        uses: actions/checkout@v6
+
+      - name: "Generate version"
+        id: version
+        run: |
+          set -euxo pipefail
+          version="$(date '+%Y%m%d.0')"
+          echo "Using version: ${version}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: "Build container image"
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: ${{ env.REPO_NAME }}/${{ matrix.variant }}
+          tags: ${{ env.TAG }} latest
+          containerfiles: Containerfile
+          layers: false
+          oci: true
+          args: |
+            BASE=quay.io/fedora-ostree-desktops/${{ matrix.variant }}:44.20260330.0
+          # FIXME
+          extra-args: |
+            --skip-unused-stages=false
+            --security-opt=label=disable
+            --volume /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}:/run/src
+
+      - name: "Setup cosign"
+        uses: sigstore/cosign-installer@v3.10.0
+        if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+
+      - name: "Push to Container Registry"
+        uses: redhat-actions/push-to-registry@v2
+        id: push
+        if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+        with:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          image: ${{ env.REPO_NAME }}/${{ matrix.variant }}
+          registry: ${{ env.REGISTRY }}
+          tags: ${{ env.TAG }} latest
+
+      - name: "Sign container image"
+        if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+        run: |
+          cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ env.REGISTRY }}/${{ env.REPO_NAME }}/${{ matrix.variant }}@${{ steps.push.outputs.digest }}
+        env:
+          COSIGN_EXPERIMENTAL: false
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}

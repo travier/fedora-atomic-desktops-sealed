@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: Timothée Ravier <tim@siosm.fr>
+# SPDX-License-Identifier: CC0-1.0
+
+# From: https://github.com/bootc-dev/bootc/blob/main/.github/actions/bootc-ubuntu-setup/action.yml
+# Requires '--pid=host' when running inside a container
+
+name: "GitHub runner setup: Free up space, set ARCH env var, fixes when running inside container"
+runs:
+  using: "composite"
+  steps:
+    - name: "Free up disk space on runner"
+      shell: bash
+      run: |
+        set -xeuo pipefail
+        sudo df -h
+        unwanted_pkgs=('^aspnetcore-.*' '^dotnet-.*' '^llvm-.*' 'php.*' '^mongodb-.*' '^mysql-.*'
+                     azure-cli google-chrome-stable firefox mono-devel)
+        unwanted_dirs=(/usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL)
+        n=0
+        runcleanup() {
+          if [[ -e /run/systemd/private ]]; then
+            sudo systemd-run -r -u action-cleanup-${n} -- "$@"
+          else
+            nsenter --mount --pid --cgroup --target 1 systemd-run -r -u action-cleanup-${n} -- "$@"
+          fi
+          n=$(($n + 1))
+        }
+        for x in ${unwanted_dirs[@]}; do
+          runcleanup rm -rf "$x"
+        done
+        runcleanup apt-get remove -y ${unwanted_pkgs[@]}
+
+    - name: "Set ARCH environment variable"
+      shell: bash
+      run: |
+        echo "ARCH=$(uname -m)" >> "$GITHUB_ENV"
+
+    - name: "Fixup containers/storage.conf when running in a container"
+      if: ${{ job.container.id != '' }}
+      shell: bash
+      run: |
+        sed -i 's/driver = "overlay"/driver = "vfs"/' /usr/share/containers/storage.conf
+
+    - name: "Fixup GitHub homedir when running in a container"
+      if: ${{ job.container.id != '' }}
+      shell: bash
+      run: |
+        mkdir -p /github/home/.docker/
