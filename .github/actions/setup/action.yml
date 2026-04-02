@@ -13,9 +13,14 @@ runs:
       run: |
         set -xeuo pipefail
         df -h
+
+        # Do Android synchronously to get enough space to pull the images
+        nsenter --mount --pid --cgroup --target 1 rm -rf /usr/local/lib/android
+
+        # Do the rest asynchronously
         unwanted_pkgs=('^aspnetcore-.*' '^dotnet-.*' '^llvm-.*' 'php.*' '^mongodb-.*' '^mysql-.*'
                      azure-cli google-chrome-stable firefox mono-devel)
-        unwanted_dirs=(/usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL)
+        unwanted_dirs=(/usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL)
         n=0
         runcleanup() {
           if [[ -e /run/systemd/private ]]; then
