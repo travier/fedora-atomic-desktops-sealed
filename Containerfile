@@ -1,4 +1,5 @@
 ARG BASE=quay.io/fedora-ostree-desktops/kinoite:44.20260330.0
+ARG TOOLS=registry.fedoraproject.org/fedora-minimal:44
 
 # FROM ghcr.io/travier/fedora-atomic-desktops-sealed/systemd-boot:44 as systemd-boot
 
@@ -18,11 +19,11 @@ rm -f "/etc/yum.repos.d/fedora-cisco-openh264.repo"
 # Install systemd-boot (will be replaced by the signed version later)
 dnf install -y fsverity-utils systemd-boot-unsigned
 
-# Remove rpm-ostree
-dnf remove -y rpm-ostree
-
-# Remove Discover's rpm-ostree backend
-dnf remove -y plasma-discover-rpm-ostree
+# Remove rpm-ostree and the backends in GNOME Software and Plasma Discover
+dnf remove -y \
+    rpm-ostree \
+    gnome-software-rpm-ostree \
+    plasma-discover-rpm-ostree
 
 # Install latest bootc release
 # https://bodhi.fedoraproject.org/updates/FEDORA-2026-56ec3c4a6a
@@ -32,7 +33,6 @@ dnf upgrade -y --enablerepo=updates-testing --refresh --advisory=FEDORA-2026-56e
 rpm -e bootupd
 rm -vrf "/usr/lib/bootupd/updates"
 
-# mkdir -p "/usr/lib/bootc/kargs.d"
 cat > "/usr/lib/bootc/kargs.d/10-rootfs-kargs.toml" << 'EOF'
 # Mount the root filesystem read-write
 # Enable btrfs compression
@@ -40,7 +40,6 @@ kargs = ["rw", "rootflags=compress=zstd:1"]
 EOF
 
 # Default to btrfs
-# mkdir -p "/usr/lib/bootc/install"
 cat > "/usr/lib/bootc/install/80-rootfs.toml" << 'EOF'
 [install.filesystem.root]
 type = "btrfs"
@@ -97,9 +96,9 @@ RUN --mount=from=rootfs,src=/,target=/chunkah,ro \
 
 FROM oci-archive:out.ociarchive as rootfs-clean
 LABEL containers.bootc 1
-LABEL ostree.bootable 1
-LABEL org.opencontainers.image.title="Fedora Kinoite UKI"
-LABEL org.opencontainers.image.source="https://github.com/travier/fedora-kinoite"
+# LABEL ostree.bootable 1
+LABEL org.opencontainers.image.title="Fedora Atomic Desktop Sealed"
+LABEL org.opencontainers.image.source="https://github.com/travier/fedora-atomic-desktops-sealed"
 LABEL org.opencontainers.image.licenses="MIT"
 ENV container=oci
 STOPSIGNAL SIGRTMIN+3
@@ -107,7 +106,7 @@ CMD ["/sbin/init"]
 
 #    --mount=type=secret,id=secureboot_key \
 #    --mount=type=secret,id=secureboot_cert \
-FROM rootfs as sealed-uki
+FROM $TOOLS as sealed-uki
 RUN --mount=type=tmpfs,target=/run \
     --mount=type=tmpfs,target=/var/tmp \
     --mount=type=bind,from=rootfs-clean,src=/,target=/run/target \
@@ -120,7 +119,6 @@ rm -f "/etc/yum.repos.d/fedora-cisco-openh264.repo"
 
 # Install ukify & signing tools
 dnf install -y systemd-ukify sbsigntools
-dnf clean all
 
 target="/run/target"
 output="/boot/EFI/Linux"
