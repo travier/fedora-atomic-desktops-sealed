@@ -44,6 +44,9 @@ jobs:
       image: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}/buildroot:${{ matrix.version }}
       options: "--security-opt=label=disable --privileged --user 0:0 --device=/dev/kvm --device=/dev/fuse --volume /:/run/host:rw --pid=host"
     steps:
+      - name: "Checkout repo"
+        uses: actions/checkout@v6
+
       - name: "Runner setup"
         uses: ./.github/actions/setup
 
@@ -55,9 +58,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           auth_file_path: /tmp/auth.json
-
-      - name: "Checkout repo"
-        uses: actions/checkout@v6
 
       - name: "Generate version"
         id: version
