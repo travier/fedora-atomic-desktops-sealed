@@ -1,4 +1,7 @@
 ARG BASE=quay.io/fedora-ostree-desktops/kinoite:44.20260330.0
+
+FROM localhost/systemd-boot:f44 as systemd-boot
+
 FROM $BASE as rootfs
 
 RUN --mount=type=tmpfs,target=/run \
@@ -22,8 +25,8 @@ dnf remove -y rpm-ostree
 dnf remove -y plasma-discover-rpm-ostree
 
 # Install latest bootc release
-# https://bodhi.fedoraproject.org/updates/FEDORA-2026-cfa95147df
-dnf upgrade -y --enablerepo=updates-testing --refresh --advisory=FEDORA-2026-cfa95147df
+# https://bodhi.fedoraproject.org/updates/FEDORA-2026-56ec3c4a6a
+dnf upgrade -y --enablerepo=updates-testing --refresh --advisory=FEDORA-2026-56ec3c4a6a
 
 # Uninstall bootupd (no support for systemd-boot yet)
 rpm -e bootupd
@@ -66,9 +69,17 @@ passwd -d root
 
 # Prepare folders in /boot
 mkdir -p /boot/EFI/Linux
+
+# Set update interval to help chunkah pack layers
+# TODO: Update for GNOME
+# setfattr \
+#     -n user.update-interval \
+#     -v "biweekly" \
+#     /usr/share/applications/org.kde.* \
+#     /usr/lib64/libKF6*
 EORUN
 
-COPY /systemd-bootx64.efi /usr/lib/systemd/boot/efi/systemd-bootx64.efi
+COPY --from=systemd-boot /systemd-bootx64.efi /usr/lib/systemd/boot/efi/systemd-bootx64.efi
 
 FROM rootfs as lint
 RUN bootc container lint
@@ -98,8 +109,7 @@ FROM rootfs as sealed-uki
 RUN --mount=type=tmpfs,target=/run \
     --mount=type=tmpfs,target=/var/tmp \
     --mount=type=bind,from=rootfs-clean,src=/,target=/run/target \
-    --mount=type=secret,id=secureboot_key \
-    --mount=type=secret,id=secureboot_cert <<EORUN
+    <<EORUN
 set -euo pipefail
 set -x
 
@@ -127,11 +137,6 @@ fi
 ukifyargs=(--measure
            --json pretty
            --output "${output}/${kver}.efi")
-
-# Signing options, we use sbsign by default
-ukifyargs+=(--signtool sbsign
-            --secureboot-private-key "${secrets}/secureboot_key"
-            --secureboot-certificate "${secrets}/secureboot_cert")
 
 # Baseline container ukify options
 containerukifyargs=(--rootfs "${target}")
