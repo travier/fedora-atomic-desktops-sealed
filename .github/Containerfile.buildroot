@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: Timothée Ravier <tim@siosm.fr>
+# SPDX-License-Identifier: CC0-1.0
+
+ARG VERSION=overridden
+
+FROM ghcr.io/sigstore/cosign/cosign:v2.6.2 as cosign-bin
+
+FROM registry.fedoraproject.org/fedora-minimal:${VERSION}
+
+COPY --from=cosign-bin /ko-app/cosign /usr/bin/cosign
+
+RUN dnf -y upgrade \
+    && \
+    dnf -y install --allowerasing \
+        buildah \
+        git-core \
+        just \
+        podman \
+        skopeo \
+    && \
+    dnf clean all
