@@ -12,7 +12,7 @@ runs:
       shell: bash
       run: |
         set -xeuo pipefail
-        sudo df -h
+        df -h
         unwanted_pkgs=('^aspnetcore-.*' '^dotnet-.*' '^llvm-.*' 'php.*' '^mongodb-.*' '^mysql-.*'
                      azure-cli google-chrome-stable firefox mono-devel)
         unwanted_dirs=(/usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL)
