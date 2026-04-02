@@ -1,0 +1,23 @@
+FROM registry.fedoraproject.org/fedora-minimal:44 as builder
+
+RUN --mount=type=tmpfs,target=/run \
+    --mount=type=tmpfs,target=/var/tmp \
+    --mount=type=secret,id=secureboot_key \
+    --mount=type=secret,id=secureboot_cert \
+    <<EORUN
+set -euo pipefail
+set -x
+
+# We don't want openh264
+rm -f "/etc/yum.repos.d/fedora-cisco-openh264.repo"
+
+dnf install -y systemd-boot-unsigned sbsigntools
+
+sbsign \
+    --key /run/secrets/db.key \
+    --cert /run/secrets/db.pem \
+    --output /systemd-bootx64.efi \
+    /usr/lib/systemd/boot/efi/systemd-bootx64.efi
+
+FROM scratch
+COPY --from=builder /systemd-bootx64.efi /systemd-bootx64.efi
