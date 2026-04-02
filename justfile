@@ -1,15 +1,15 @@
-# name := "fedora-silverblue-uki"
-name := "fedora-kinoite-uki"
-image := name + ":latest"
+default_variant:= "silverblue"
+version := "44.20260330.0"
 
 all:
     echo TODO
 
-build:
+build variant=default_variant:
     #!/bin/bash
     set -euo pipefail
     podman build \
-        -t {{image}} \
+        --build-arg=BASE=quay.io/fedora-ostree-desktops/{{variant}}:{{version}} \
+        -t {{variant}}-sealed:{{version}} \
         --skip-unused-stages=false \
         -v $(pwd):/run/src \
         --security-opt=label=disable \
@@ -17,7 +17,7 @@ build:
         --secret=id=secureboot_cert,src=secureboot/db.pem \
         .
 
-qcow2:
+qcow2 variant=default_variant:
     #!/bin/bash
     set -euo pipefail
     ./bcvk to-disk \
@@ -26,11 +26,11 @@ qcow2:
         --bootloader=systemd \
         --format qcow2 \
         --disk-size 20G \
-        {{image}} {{name}}.qcow2
+        {{variant}}-sealed:{{version}} {{variant}}-{{version}}.qcow2
 
-libvirt:
+libvirt variant=default_variant:
     #!/bin/bash
     set -euo pipefail
     DEST="${HOME}/.local/share/libvirt/images"
-    mv {{name}}.qcow2 "${DEST}"
-    ./install-libvirt_eufi_nosb.sh {{name}} "${DEST}/{{name}}.qcow2"
+    mv {{variant}}-{{version}}.qcow2 "${DEST}"
+    ./install-libvirt_eufi_nosb.sh fedora-{{variant}}-{{version}} "${DEST}/{{variant}}-{{version}}.qcow2"
