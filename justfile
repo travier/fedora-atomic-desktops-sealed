@@ -26,7 +26,7 @@ qcow2 variant=default_variant:
         --bootloader=systemd \
         --format qcow2 \
         --disk-size 20G \
-        {{variant}}-sealed:{{version}} {{variant}}-{{version}}.qcow2
+        localhost/{{variant}}-sealed:{{version}} {{variant}}-{{version}}.qcow2
 
 libvirt variant=default_variant:
     #!/bin/bash
