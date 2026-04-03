@@ -1,0 +1,3 @@
+*.ociarchive
+*.qcow2
+/keys/
