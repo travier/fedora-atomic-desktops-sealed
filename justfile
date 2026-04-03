@@ -77,6 +77,40 @@ libvirt variant=default_variant:
     set -euo pipefail
     DEST="${HOME}/.local/share/libvirt/images"
     mv {{variant}}-{{version}}.qcow2 "${DEST}"
-    ./install-libvirt_eufi_nosb.sh \
+    cp "OVMF_VARS_CUSTOM.qcow2" "${DEST}/{{variant}}-{{version}}_ovmf_vars.qcow2"
+
+    ./install-libvirt_eufi_sb.sh \
         fedora-{{variant}}-{{version}} \
-        "${DEST}/{{variant}}-{{version}}.qcow2"
+        "${DEST}/{{variant}}-{{version}}.qcow2" \
+        "OVMF_VARS_CUSTOM.qcow2"
+
+    name="fedora-{{variant}}-{{version}}"
+    image="${DEST}/{{variant}}-{{version}}.qcow2"
+    ovmf_vars="${DEST}/{{variant}}-{{version}}_ovmf_vars.qcow2"
+
+    VCPUS="4"
+    RAM_MB="4096"
+    DISK_GB="20"
+
+    OVMF_CODE="/usr/share/edk2/ovmf/OVMF_CODE_4M.secboot.qcow2"
+    OVMF_VARS_TEMPLATE="/usr/share/edk2/ovmf/OVMF_VARS_4M.secboot.qcow2"
+    OVMF_VARS="${HOME}/.local/share/libvirt/images/OVMF_VARS_CUSTOM_${name}.qcow2"
+
+    loader="loader=${OVMF_CODE},loader.readonly=yes,loader.type=pflash,loader_secure=yes"
+    nvram="nvram=${OVMF_VARS},nvram.template=${OVMF_VARS_TEMPLATE}"
+    features="firmware.feature0.name=secure-boot,firmware.feature0.enabled=yes,firmware.feature1.name=enrolled-keys,firmware.feature1.enabled=yes"
+    uefi_arg+=("uefi,${loader},${nvram},${features}")
+
+    virt-install --connect="qemu:///system" \
+        --name="${name}" \
+        --vcpus="${VCPUS}" \
+        --memory="${RAM_MB}" \
+        --os-variant="fedora43" \
+        --import \
+        --disk="size=${DISK_GB},backing_store=${IMAGE}" \
+        --network bridge=virbr0 \
+        --machine q35 \
+        --boot "${uefi_arg}" \
+        --tpm "backend.type=emulator,backend.version=2.0,model=tpm-tis" \
+        "${args[@]}" \
+        --noautoconsole
