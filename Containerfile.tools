@@ -1,4 +1,5 @@
-FROM registry.fedoraproject.org/fedora-minimal:44
+ARG RELEASE=overriden
+FROM registry.fedoraproject.org/fedora-minimal:${RELEASE}
 RUN --mount=type=tmpfs,target=/run \
     --mount=type=tmpfs,target=/tmp \
     --mount=type=tmpfs,target=/var \

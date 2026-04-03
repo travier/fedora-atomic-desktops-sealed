@@ -1,6 +1,6 @@
-ARG BASE=quay.io/fedora-ostree-desktops/kinoite:44.20260330.0
-ARG SYSTEMDBOOT=quay.io/fedora-atomic-desktops-sealed/systemd-boot:44
-ARG TOOLS=quay.io/fedora-atomic-desktops-sealed/tools:44
+ARG BASE=overridden
+ARG SYSTEMDBOOT=overridden
+ARG TOOLS=overridden
 
 FROM $SYSTEMDBOOT as systemd-boot
 
