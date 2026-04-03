@@ -11,6 +11,8 @@ on:
   push:
     branches:
       - "main"
+    paths:
+      - ".github/workflows/bootable-containers.yml"
   pull_request:
     branches:
       - "main"
