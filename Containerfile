@@ -1,7 +1,8 @@
 ARG BASE=quay.io/fedora-ostree-desktops/kinoite:44.20260330.0
-ARG TOOLS=registry.fedoraproject.org/fedora-minimal:44
+ARG SYSTEMDBOOT=quay.io/fedora-atomic-desktops-sealed/systemd-boot:44
+ARG TOOLS=quay.io/fedora-atomic-desktops-sealed/tools:44
 
-# FROM ghcr.io/travier/fedora-atomic-desktops-sealed/systemd-boot:44 as systemd-boot
+FROM $SYSTEMDBOOT as systemd-boot
 
 FROM $BASE as rootfs
 
@@ -16,7 +17,7 @@ set -x
 rm -f "/etc/yum.repos.d/fedora-cisco-openh264.repo"
 
 # Install fsverity utils to make it easier to check things
-# Install systemd-boot (will be replaced by the signed version later)
+# Install systemd-boot (will be replaced by the signed version in a later stage)
 dnf install -y fsverity-utils systemd-boot-unsigned
 
 # Remove rpm-ostree and the backends in GNOME Software and Plasma Discover
@@ -33,9 +34,9 @@ dnf upgrade -y --enablerepo=updates-testing --refresh --advisory=FEDORA-2026-56e
 rpm -e bootupd
 rm -vrf "/usr/lib/bootupd/updates"
 
-cat > "/usr/lib/bootc/kargs.d/10-rootfs-kargs.toml" << 'EOF'
 # Mount the root filesystem read-write
 # Enable btrfs compression
+cat > "/usr/lib/bootc/kargs.d/10-rootfs-kargs.toml" << 'EOF'
 kargs = ["rw", "rootflags=compress=zstd:1"]
 EOF
 
@@ -68,23 +69,17 @@ passwd -d root
 
 # Prepare folders in /boot
 mkdir -p /boot/EFI/Linux
-
-# Set update interval to help chunkah pack layers
-# TODO: Update for GNOME
-# setfattr \
-#     -n user.update-interval \
-#     -v "biweekly" \
-#     /usr/share/applications/org.kde.* \
-#     /usr/lib64/libKF6*
 EORUN
 
-# COPY --from=systemd-boot /systemd-bootx64.efi /usr/lib/systemd/boot/efi/systemd-bootx64.efi
+# Replace Fedora's systemd-boot with our signed one
+COPY --from=systemd-boot /systemd-bootx64.efi /usr/lib/systemd/boot/efi/systemd-bootx64.efi
 
 FROM rootfs as lint
 RUN bootc container lint
 
-# Use more layers (128)
-# Ignore legacy ostree folders
+# Rechunk container image to ensure that we compute the correct composefs hash
+# - Use more layers (128)
+# - Ignore legacy ostree folders
 FROM quay.io/coreos/chunkah AS chunkah
 RUN --mount=from=rootfs,src=/,target=/chunkah,ro \
     --mount=type=bind,target=/run/src,rw \
@@ -94,9 +89,8 @@ RUN --mount=from=rootfs,src=/,target=/chunkah,ro \
             --prune /sysroot/ostree \
             > /run/src/out.ociarchive
 
-FROM oci-archive:out.ociarchive as rootfs-clean
+FROM oci-archive:out.ociarchive as rootfs-chunked
 LABEL containers.bootc 1
-# LABEL ostree.bootable 1
 LABEL org.opencontainers.image.title="Fedora Atomic Desktop Sealed"
 LABEL org.opencontainers.image.source="https://github.com/travier/fedora-atomic-desktops-sealed"
 LABEL org.opencontainers.image.licenses="MIT"
@@ -104,27 +98,20 @@ ENV container=oci
 STOPSIGNAL SIGRTMIN+3
 CMD ["/sbin/init"]
 
-#    --mount=type=secret,id=secureboot_key \
-#    --mount=type=secret,id=secureboot_cert \
 FROM $TOOLS as sealed-uki
 RUN --mount=type=tmpfs,target=/run \
+    --mount=type=tmpfs,target=/tmp \
     --mount=type=tmpfs,target=/var/tmp \
-    --mount=type=bind,from=rootfs-clean,src=/,target=/run/target \
+    --mount=type=secret,id=secureboot_key \
+    --mount=type=secret,id=secureboot_crt \
+    --mount=type=bind,from=rootfs-chunked,src=/,target=/run/target \
     <<EORUN
 set -euo pipefail
 set -x
 
-# We don't want openh264
-rm -f "/etc/yum.repos.d/fedora-cisco-openh264.repo"
-
-# Install ukify & signing tools
-dnf install -y systemd-ukify sbsigntools jq bootc
-
 target="/run/target"
 output="/boot/EFI/Linux"
 secrets="/run/secrets"
-
-mkdir -p /boot/EFI/Linux
 
 # Find the kernel version (needed for output filename)
 kver=$(bootc container inspect --rootfs "${target}" --json | jq -r '.kernel.version')
@@ -134,14 +121,18 @@ if [ -z "$kver" ] || [ "$kver" = "null" ]; then
 fi
 
 # Baseline ukify options
-ukifyargs=(--measure
-           --json pretty
-           --output "${output}/${kver}.efi")
+ukifyargs=(
+    --measure
+    --json pretty
+    --output "${output}/${kver}.efi"
+)
 
 # Signing options, we use sbsign by default
-# ukifyargs+=(--signtool sbsign
-#             --secureboot-private-key "${secrets}/secureboot_key"
-#             --secureboot-certificate "${secrets}/secureboot_cert")
+ukifyargs+=(
+    --signtool sbsign
+    --secureboot-private-key "${secrets}/secureboot_key"
+    --secureboot-certificate "${secrets}/secureboot_crt"
+)
 
 # Baseline container ukify options
 containerukifyargs=(--rootfs "${target}")
@@ -151,5 +142,6 @@ containerukifyargs=(--rootfs "${target}")
 bootc container ukify "${containerukifyargs[@]}" "${missing_verity[@]}" -- "${ukifyargs[@]}"
 EORUN
 
-FROM rootfs-clean as final
+# Copy UKI to our final image
+FROM rootfs-chunked as final
 COPY --from=sealed-uki /boot/EFI/Linux /boot/EFI/Linux

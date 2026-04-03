@@ -1,0 +1,14 @@
+FROM registry.fedoraproject.org/fedora-minimal:44
+RUN --mount=type=tmpfs,target=/run \
+    --mount=type=tmpfs,target=/tmp \
+    --mount=type=tmpfs,target=/var \
+    <<EORUN
+set -euo pipefail
+set -x
+# We don't want openh264
+rm -f "/etc/yum.repos.d/fedora-cisco-openh264.repo"
+# Install ukify & signing tools
+dnf install -y systemd-ukify sbsigntools jq bootc
+# Prepare output dir
+mkdir -p /boot/EFI/Linux
+EORUN

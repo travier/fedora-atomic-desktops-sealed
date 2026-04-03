@@ -1,11 +1,11 @@
 # SPDX-FileCopyrightText: Timothée Ravier <tim@siosm.fr>
 # SPDX-License-Identifier: CC0-1.0
 
-name: "Build systemd-boot container image"
+name: "Build tools container image"
 
 env:
-  CONTAINERFILE: "Containerfile.systemd-boot"
-  NAME: "${{ github.event.repository.name }}/systemd-boot"
+  CONTAINERFILE: "Containerfile.tools"
+  NAME: "${{ github.event.repository.name }}/tools"
   REGISTRY: "ghcr.io/${{ github.repository_owner }}"
 
 on:
@@ -13,14 +13,14 @@ on:
     branches:
       - "main"
     paths:
-      - ".github/Containerfile.systemd-boot"
-      - ".github/workflows/systemd-boot.yml"
+      - ".github/Containerfile.tools"
+      - ".github/workflows/tools.yml"
   push:
     branches:
       - "main"
     paths:
-      - ".github/Containerfile.systemd-boot"
-      - ".github/workflows/systemd-boot.yml"
+      - ".github/Containerfile.tools"
+      - ".github/workflows/tools.yml"
   schedule:
     - cron:  "0 0 * * MON"
   workflow_dispatch:

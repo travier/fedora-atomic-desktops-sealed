@@ -1,0 +1,3 @@
+FROM docker.io/archlinux:latest
+RUN pacman -Syu --noconfirm sbctl
+ENTRYPOINT ["sbctl"]
