@@ -20,6 +20,13 @@ just libvirt silverblue
 just libvirt kinoite
 ```
 
+## Installer ISO?
+
+There is currently no installation ISO available for those images.
+If you want to test them on real hardware, you will have to use `bootc install` from another live environment to install them.
+You can use the Fedora CoreOS live ISO for example.
+Notice: bootc 1.14.1 or later is required.
+
 ## How to build your own
 
 ### Dependencies for building
