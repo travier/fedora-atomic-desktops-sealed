@@ -2,15 +2,36 @@
 
 **Warning: Those are work in progress, unofficial development images for testing purposes.**
 
-## Dependencies
+## How to test the pre-built disk images
+
+- Download the pre-built disk image:
+
+```
+cd ~/.local/share/libvirt/images
+oras pull quay.io/fedora-atomic-desktops-sealed/silverblue:44.20260330.0.qcow2
+oras pull quay.io/fedora-atomic-desktops-sealed/kinoite:44.20260330.0.qcow2
+```
+
+- Boot the QCOW2 image with libvirt:
+
+```
+cd fedora-atomic-desktops-sealed
+just libvirt silverblue
+just libvirt kinoite
+```
+
+## How to build your own
+
+### Dependencies for building
 
 - podman
 - [bcvk](https://github.com/bootc-dev/bcvk) (only v0.10.0 tested as working right now)
   - See: <https://github.com/bootc-dev/bcvk/issues/234>
-  - See: <https://github.com/bootc-dev/bcvk/issues/237>
 - [virt-fw-vars](https://github.com/rhuefi/qemu-ovmf-secureboot) (`python3-virt-firmware` on Fedora)
 
-## How to
+We will be able to use `bcvk` more once <https://github.com/bootc-dev/bcvk/issues/237> is fixed.
+
+### Steps
 
 - Generate keys for signing with Secure Boot (using [sbctl](https://github.com/foxboron/sbctl)):
 
