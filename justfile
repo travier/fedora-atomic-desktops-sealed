@@ -146,3 +146,16 @@ libvirt variant:
         --boot "${uefi_arg}" \
         --tpm "backend.type=emulator,backend.version=2.0,model=tpm-tis" \
         --noautoconsole
+
+# Build and sign a UKI addon
+uki-addon name commandline:
+    #!/bin/bash
+    set -euo pipefail
+    podman build \
+        -t uki-addon:{{name}} \
+        --build-arg=TOOLS={{signing_tools_container}} \
+        --build-arg=NAME={{name}} \
+        --build-arg=COMMANDLINE="{{commandline}}" \
+        --secret=id=secureboot_key,src=keys/db/db.key \
+        --secret=id=secureboot_crt,src=keys/db/db.pem \
+        -f Containerfile.uki-addon

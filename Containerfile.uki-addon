@@ -1,0 +1,21 @@
+ARG TOOLS=overridden
+FROM $TOOLS as builder
+ARG NAME=overridden
+ARG COMMANDLINE=overridden
+RUN --mount=type=tmpfs,target=/run \
+    --mount=type=secret,id=secureboot_key \
+    --mount=type=secret,id=secureboot_crt \
+    <<EORUN
+set -euo pipefail
+set -x
+ukify build \
+    --cmdline "${COMMANDLINE}" \
+    --signtool sbsign \
+    --secureboot-private-key /run/secrets/secureboot_key \
+    --secureboot-certificate /run/secrets/secureboot_crt \
+    --output "/${NAME}.addon.efi"
+EORUN
+
+FROM scratch
+ARG NAME=overridden
+COPY --from=builder /$NAME.addon.efi /boot/loader/addons/$NAME.addon.efi

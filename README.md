@@ -92,6 +92,25 @@ just libvirt silverblue
 just libvirt kinoite
 ```
 
+### UKI Addons
+
+The kernel command line is part of the UKI and can not be changed as it is signed.
+You can build a UKI addon to add kernel command line arguments without having to rebuild the UKI.
+This is useful to set the keyboard layout for example: `vconsole.keymap=fr`.
+Be careful with what you sign with your Secure Boot key as we currently have no mecanism in place to revoke them.
+
+```
+just uki-addon keymap-fr "vconsole.keymap=fr foo bar"
+```
+
+You can then install your addon in the ESP, either:
+
+- globally for all UKIs: `/boot/loader/addons/keymap-fr.addon.efi`
+- or only for a single UKI: `/boot/EFI/Linux/bootc/bootc_composefs-<hash>.efi.extra.d/keymap-fr.addon.efi`
+
+See [systemd-stub's man page](https://www.freedesktop.org/software/systemd/man/latest/systemd-stub.html) for examples.
+In the future, we will likely [teach bootc how to manage UKI addons](https://github.com/travier/fedora-atomic-desktops-sealed/issues/13).
+
 ## Licenses
 
 See [LICENSES](LICENSES).
