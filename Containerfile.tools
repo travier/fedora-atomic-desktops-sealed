@@ -1,4 +1,4 @@
-ARG RELEASE=overriden
+ARG RELEASE=overridden
 FROM registry.fedoraproject.org/fedora-minimal:${RELEASE}
 RUN --mount=type=tmpfs,target=/run \
     --mount=type=tmpfs,target=/tmp \
