@@ -1,5 +1,8 @@
 # Container registry to get the base images from
-registry := "quay.io/fedora-ostree-desktops"
+base_registry := "quay.io/fedora-ostree-desktops"
+
+# Container registry where the images will be pushed
+registry := "quay.io/fedora-atomic-desktops-sealed"
 
 # Version of the container image to use as base
 version := "44.20260330.0"
@@ -58,10 +61,11 @@ build variant:
     #!/bin/bash
     set -euo pipefail
     podman build \
-        --build-arg=BASE={{registry}}/{{variant}}:{{version}} \
+        --build-arg=BASE={{base_registry}}/{{variant}}:{{version}} \
         --build-arg=SYSTEMDBOOT={{systemd_boot_container}} \
         --build-arg=TOOLS={{signing_tools_container}} \
-        -t {{variant}}-sealed:{{version}} \
+        -t {{registry}}/{{variant}}:{{version}} \
+        -t {{registry}}/{{variant}}:{{release}} \
         --skip-unused-stages=false \
         -v $(pwd):/run/src \
         --security-opt=label=disable \
@@ -80,7 +84,7 @@ qcow2 variant:
         --bootloader=systemd \
         --format qcow2 \
         --disk-size 20G \
-        localhost/{{variant}}-sealed:{{version}} \
+        {{registry}}/{{variant}}:{{release}} \
         {{variant}}-{{version}}.qcow2
 
 # Move the QCOW2 image to libvirt image store
@@ -152,7 +156,7 @@ uki-addon name commandline:
     #!/bin/bash
     set -euo pipefail
     podman build \
-        -t uki-addon:{{name}} \
+        -t {{registry}}/uki-addon:{{name}} \
         --build-arg=TOOLS={{signing_tools_container}} \
         --build-arg=NAME={{name}} \
         --build-arg=COMMANDLINE="{{commandline}}" \
