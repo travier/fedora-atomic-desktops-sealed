@@ -20,12 +20,15 @@ just libvirt silverblue
 just libvirt kinoite
 ```
 
-## Installer ISO?
+## Testing on real hardware
 
 There is currently no installation ISO available for those images.
 If you want to test them on real hardware, you will have to use `bootc install` from another live environment to install them.
 You can use the Fedora CoreOS live ISO for example.
 Notice: bootc 1.14.1 or later is required.
+
+If you want to enroll your Secure Boot keys in your firmware, take a look at [sbctl](https://github.com/foxboron/sbctl).
+Make sure to read the [Option ROM section](https://github.com/Foxboron/sbctl/wiki/FAQ#option-rom) to avoid "soft bricking" your hardware.
 
 ## How to build your own
 
