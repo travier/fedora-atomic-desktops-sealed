@@ -64,6 +64,12 @@ jobs:
           echo "Using version: ${version}"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
 
+      - name: "Get Secure Boot signing key"
+        run: |
+          set -euxo pipefail
+          printenv SB_KEY > key
+          printenv CB_CRT > crt
+
       - name: "Build container image"
         uses: redhat-actions/buildah-build@v2
         with:
@@ -80,6 +86,12 @@ jobs:
             --skip-unused-stages=false
             --security-opt=label=disable
             --volume /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}:/run/src
+            --secret=id=secureboot_key,src=key
+            --secret=id=secureboot_crt,src=crt
+
+      - name: "Cleanup Secure Boot signing key"
+        if: always()
+        run: rm -vf key crt
 
       - name: "Setup cosign"
         uses: sigstore/cosign-installer@v3.10.0
