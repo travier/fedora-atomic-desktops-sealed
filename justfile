@@ -5,7 +5,7 @@ base_registry := "quay.io/fedora-ostree-desktops"
 registry := "quay.io/fedora-atomic-desktops-sealed"
 
 # Version of the container image to use as base
-version := "44.20260407.0"
+version := "44.20260414.0"
 
 # Major Fedora version used
 release := "44"
