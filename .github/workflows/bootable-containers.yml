@@ -69,6 +69,9 @@ jobs:
           set -euxo pipefail
           printenv SB_KEY > key
           printenv CB_CRT > crt
+        env:
+          SB_KEY: ${{ secrets.SB_KEY }}
+          SB_CRT: ${{ secrets.SB_CRT }}
 
       - name: "Build container image"
         uses: redhat-actions/buildah-build@v2
