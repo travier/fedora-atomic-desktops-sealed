@@ -38,8 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # variant: ['silverblue', 'kinoite']
-        variant: ['silverblue']
+        variant: ['silverblue', 'kinoite']
         version: ['44']
     steps:
       - name: "Checkout repo"
