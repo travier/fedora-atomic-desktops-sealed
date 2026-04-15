@@ -129,7 +129,7 @@ jobs:
 
       - name: "Push to quay.io Container Registry"
         uses: redhat-actions/push-to-registry@v2
-        id: push
+        id: push_quay_io
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         with:
           username: ${{ secrets.BOT_USERNAME }}
@@ -141,7 +141,7 @@ jobs:
       - name: "Sign container image on quay.io"
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         run: |
-          cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ env.REGISTRY_QUAY }}/${{ env.REPO_NAME }}/${{ matrix.variant }}@${{ steps.push.outputs.digest }}
+          cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ env.REGISTRY_QUAY }}/${{ env.REPO_NAME }}/${{ matrix.variant }}@${{ steps.push_quay_io.outputs.digest }}
         env:
           COSIGN_EXPERIMENTAL: false
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
