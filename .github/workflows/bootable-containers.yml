@@ -88,8 +88,8 @@ jobs:
             --skip-unused-stages=false
             --security-opt=label=disable
             --volume /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}:/run/src
-            --secret=id=secureboot_key,src=key
-            --secret=id=secureboot_crt,src=crt
+            --secret=id=secureboot_key,src=/tmp/keys/key
+            --secret=id=secureboot_crt,src=/tmp/keys/crt
 
       - name: "Cleanup Secure Boot signing key"
         if: always()
