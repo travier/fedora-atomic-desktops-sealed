@@ -2,6 +2,11 @@
 
 **Warning: Those are work in progress, unofficial development images for testing purposes.**
 
+Container images are available both on `quay.io` and `ghcr.io`:
+
+- <https://quay.io/organization/fedora-atomic-desktops-sealed>
+- <https://github.com/travier?tab=packages&repo_name=fedora-atomic-desktops-sealed>
+
 ## How to test the pre-built disk images
 
 - Download the pre-built disk image:
