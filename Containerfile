@@ -27,8 +27,7 @@ dnf remove -y \
     plasma-discover-rpm-ostree
 
 # Install latest bootc release
-# https://bodhi.fedoraproject.org/updates/FEDORA-2026-56ec3c4a6a
-dnf upgrade -y --enablerepo=updates-testing --refresh --advisory=FEDORA-2026-56ec3c4a6a
+dnf upgrade -y --enablerepo=updates-testing --refresh bootc
 
 # Uninstall bootupd (no support for systemd-boot yet)
 rpm -e bootupd
