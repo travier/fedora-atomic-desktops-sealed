@@ -70,12 +70,14 @@ jobs:
         uses: redhat-actions/buildah-build@v2
         with:
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}
-          tags: ${{ env.TAG }} latest
+          tags: ${{ steps.version.version }} ${{ matrix.version }}
           containerfiles: Containerfile
           layers: false
           oci: true
           build-args: |
-            BASE=quay.io/fedora-ostree-desktops/${{ matrix.variant }}:44.20260330.0
+            BASE=quay.io/fedora-ostree-desktops/${{ matrix.variant }}:${{ steps.version.version }}
+            SYSTEMDBOOT=quay.io/fedora-atomic-desktops-sealed/systemd-boot:${{ matrix.version }}
+            TOOLS=quay.io/fedora-atomic-desktops-sealed/tools:${{ matrix.version }}
           extra-args: |
             --skip-unused-stages=false
             --security-opt=label=disable
@@ -94,7 +96,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}
           registry: ${{ env.REGISTRY }}
-          tags: ${{ env.TAG }} latest
+          tags: ${{ steps.version.version }} ${{ matrix.version }}
 
       - name: "Sign container image"
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
