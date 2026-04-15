@@ -48,7 +48,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: "Runner setup"
-        uses: bootc-dev/actions/bootc-ubuntu-setup@main
+        uses: travier/bootc-dev-actions/bootc-ubuntu-setup@main
 
       - name: "Login to Container Registry"
         uses: redhat-actions/podman-login@v1
