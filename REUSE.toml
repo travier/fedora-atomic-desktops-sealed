@@ -16,6 +16,7 @@ SPDX-License-Identifier = "CC0-1.0"
 path = [
   "keys/**",
   "fedora-atomic-desktops-sealed.pub",
+  "OVMF_VARS_CUSTOM.qcow2",
 ]
 SPDX-FileCopyrightText = [
     "NONE",
