@@ -12,9 +12,11 @@ on:
   push:
     branches:
       - "main"
-  pull_request:
-    branches:
-      - "main"
+  # We will need a distinct workflow for pull request builds as we will not
+  # have access to secrets for signing in those.
+  # pull_request:
+  #   branches:
+  #     - "main"
   schedule:
     - cron: '0 4 * * MON'
   workflow_dispatch:
