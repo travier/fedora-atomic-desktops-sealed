@@ -182,6 +182,17 @@ jobs:
           username: ${{ secrets.BOT_USERNAME }}
           password: ${{ secrets.BOT_SECRET }}
 
+      - name: "Create multi-arch manifest"
+        if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euxo pipefail
+          #   "${REGISTRY_QUAY}/${NAME}:${RELEASE}-aarch64"
+          buildah manifest create "${REGISTRY_QUAY}/${NAME}:${RELEASE}" \
+            "${REGISTRY_QUAY}/${NAME}:${RELEASE}-x86_64"
+        env:
+          RELEASE: ${{ matrix.release }}
+
       - name: "Push to Container Registry (quay.io)"
         uses: redhat-actions/push-to-registry@v2
         id: push_quay_io
