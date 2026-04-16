@@ -45,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ['44']
+        release: ['44']
     steps:
       - name: "Checkout repo"
         uses: actions/checkout@v6
@@ -60,11 +60,11 @@ jobs:
         with:
           context: ".github"
           image: ${{ env.NAME }}
-          tags: ${{ matrix.version }}-x86_64
+          tags: ${{ matrix.release }}-x86_64
           containerfiles: ${{ env.CONTAINERFILE }}
           oci: true
           build-args: |
-            RELEASE=${{ matrix.version }}
+            RELEASE=${{ matrix.release }}
 
       - name: "Push to Container Registry (ghcr.io)"
         uses: redhat-actions/push-to-registry@v2
@@ -74,7 +74,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           image: ${{ env.NAME }}
-          tags: ${{ matrix.version }}-x86_64
+          tags: ${{ matrix.release }}-x86_64
 
       - name: "Push to Container Registry (quay.io)"
         uses: redhat-actions/push-to-registry@v2
@@ -84,14 +84,14 @@ jobs:
           username: ${{ secrets.BOT_USERNAME }}
           password: ${{ secrets.BOT_SECRET }}
           image: ${{ env.NAME }}
-          tags: ${{ matrix.version }}-x86_64
+          tags: ${{ matrix.release }}-x86_64
 
   # build-aarch64:
   #   runs-on: "ubuntu-24.04-arm"
   #   strategy:
   #     fail-fast: false
   #     matrix:
-  #       version: ['44']
+  #       release: ['44']
   #   steps:
   #     - name: "Checkout repo"
   #       uses: actions/checkout@v5
@@ -101,11 +101,11 @@ jobs:
   #       with:
   #         context: ".github"
   #         image: ${{ env.NAME }}
-  #         tags: ${{ matrix.version }}-aarch64
+  #         tags: ${{ matrix.release }}-aarch64
   #         containerfiles: ${{ env.CONTAINERFILE }}
   #         oci: true
   #         build-args: |
-  #           VERSION=${{ matrix.version }}
+  #           RELEASE=${{ matrix.release }}
 
   #     - name: "Push to Container Registry"
   #       uses: redhat-actions/push-to-registry@v2
@@ -116,7 +116,7 @@ jobs:
   #         username: ${{ github.actor }}
   #         password: ${{ secrets.GITHUB_TOKEN }}
   #         image: ${{ env.NAME }}
-  #         tags: ${{ matrix.version }}-aarch64
+  #         tags: ${{ matrix.release }}-aarch64
 
   merge:
     runs-on: "ubuntu-24.04"
@@ -126,7 +126,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ['44']
+        release: ['44']
     steps:
       - name: "Login to Container Registry (ghcr.io)"
         uses: redhat-actions/podman-login@v1
@@ -141,11 +141,11 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          #   "${REGISTRY_GHCR}/${NAME}:${VERSION}-aarch64"
-          buildah manifest create "${REGISTRY_GHCR}/${NAME}:${VERSION}" \
-            "${REGISTRY_GHCR}/${NAME}:${VERSION}-x86_64"
+          #   "${REGISTRY_GHCR}/${NAME}:${RELEASE}-aarch64"
+          buildah manifest create "${REGISTRY_GHCR}/${NAME}:${RELEASE}" \
+            "${REGISTRY_GHCR}/${NAME}:${RELEASE}-x86_64"
         env:
-          VERSION: ${{ matrix.version }}
+          RELEASE: ${{ matrix.release }}
 
       - name: "Push to Container Registry (ghcr.io)"
         uses: redhat-actions/push-to-registry@v2
@@ -156,7 +156,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           image: ${{ env.NAME }}
-          tags: ${{ matrix.version }}
+          tags: ${{ matrix.release }}
 
       - name: "Setup cosign"
         uses: sigstore/cosign-installer@v3.10.0
@@ -187,7 +187,7 @@ jobs:
           password: ${{ secrets.BOT_SECRET }}
           image: ${{ env.NAME }}
           registry: ${{ env.REGISTRY_QUAY }}
-          tags: ${{ matrix.version }}.${{ steps.version.outputs.version }} ${{ matrix.version }}
+          tags: ${{ matrix.release }}
 
       - name: "Sign container image (quay.io)"
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'

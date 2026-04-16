@@ -45,7 +45,7 @@ jobs:
       fail-fast: false
       matrix:
         variant: ['silverblue', 'kinoite']
-        version: ['44']
+        release: ['44']
     steps:
       - name: "Checkout repo"
         uses: actions/checkout@v6
@@ -82,14 +82,14 @@ jobs:
         uses: redhat-actions/buildah-build@v2
         with:
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}
-          tags: ${{ matrix.version }}.${{ steps.version.outputs.version }} ${{ matrix.version }}
+          tags: ${{ matrix.release }}.${{ steps.version.outputs.version }} ${{ matrix.release }}
           containerfiles: Containerfile
           layers: false
           oci: true
           build-args: |
-            BASE=quay.io/fedora-ostree-desktops/${{ matrix.variant }}:${{ matrix.version }}.${{ steps.version.outputs.version }}
-            SYSTEMDBOOT=quay.io/fedora-atomic-desktops-sealed/systemd-boot:${{ matrix.version }}
-            TOOLS=quay.io/fedora-atomic-desktops-sealed/tools:${{ matrix.version }}
+            BASE=quay.io/fedora-ostree-desktops/${{ matrix.variant }}:${{ matrix.release }}.${{ steps.version.outputs.version }}
+            SYSTEMDBOOT=quay.io/fedora-atomic-desktops-sealed/systemd-boot:${{ matrix.release }}
+            TOOLS=quay.io/fedora-atomic-desktops-sealed/tools:${{ matrix.release }}
           extra-args: |
             --skip-unused-stages=false
             --security-opt=label=disable
@@ -114,7 +114,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}
           registry: ${{ env.REGISTRY_GHCR }}
-          tags: ${{ matrix.version }}.${{ steps.version.outputs.version }} ${{ matrix.version }}
+          tags: ${{ matrix.release }}.${{ steps.version.outputs.version }} ${{ matrix.release }}
 
       - name: "Sign container image (ghcr.io)"
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
@@ -141,7 +141,7 @@ jobs:
           password: ${{ secrets.BOT_SECRET }}
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}
           registry: ${{ env.REGISTRY_QUAY }}
-          tags: ${{ matrix.version }}.${{ steps.version.outputs.version }} ${{ matrix.version }}
+          tags: ${{ matrix.release }}.${{ steps.version.outputs.version }} ${{ matrix.release }}
 
       - name: "Sign container image (quay.io)"
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
