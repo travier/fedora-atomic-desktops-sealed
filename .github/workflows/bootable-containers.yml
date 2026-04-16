@@ -50,7 +50,7 @@ jobs:
       - name: "Runner setup"
         uses: travier/bootc-dev-actions/bootc-ubuntu-setup@main
 
-      - name: "Login to Container Registry"
+      - name: "Login to Container Registry (ghcr.io)"
         uses: redhat-actions/podman-login@v1
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         with:
@@ -102,7 +102,7 @@ jobs:
         uses: sigstore/cosign-installer@v3.10.0
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
 
-      - name: "Push to Container Registry"
+      - name: "Push to Container Registry (ghcr.io)"
         uses: redhat-actions/push-to-registry@v2
         id: push
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
@@ -113,7 +113,7 @@ jobs:
           registry: ${{ env.REGISTRY_GHCR }}
           tags: ${{ matrix.version }}.${{ steps.version.outputs.version }} ${{ matrix.version }}
 
-      - name: "Sign container image"
+      - name: "Sign container image (ghcr.io)"
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         run: |
           cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ env.REGISTRY_GHCR }}/${{ env.REPO_NAME }}/${{ matrix.variant }}@${{ steps.push.outputs.digest }}
@@ -121,7 +121,7 @@ jobs:
           COSIGN_EXPERIMENTAL: false
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
 
-      - name: "Login to quay.io Container Registry"
+      - name: "Login to Container Registry (quay.io)"
         uses: redhat-actions/podman-login@v1
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         with:
@@ -129,7 +129,7 @@ jobs:
           username: ${{ secrets.BOT_USERNAME }}
           password: ${{ secrets.BOT_SECRET }}
 
-      - name: "Push to quay.io Container Registry"
+      - name: "Push to Container Registry (quay.io)"
         uses: redhat-actions/push-to-registry@v2
         id: push_quay_io
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
@@ -140,7 +140,7 @@ jobs:
           registry: ${{ env.REGISTRY_QUAY }}
           tags: ${{ matrix.version }}.${{ steps.version.outputs.version }} ${{ matrix.version }}
 
-      - name: "Sign container image on quay.io"
+      - name: "Sign container image (quay.io)"
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         run: |
           cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ env.REGISTRY_QUAY }}/${{ env.REPO_NAME }}/${{ matrix.variant }}@${{ steps.push_quay_io.outputs.digest }}
