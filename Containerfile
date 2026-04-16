@@ -93,6 +93,7 @@ LABEL containers.bootc 1
 LABEL org.opencontainers.image.title="Fedora Atomic Desktop Sealed"
 LABEL org.opencontainers.image.source="https://github.com/travier/fedora-atomic-desktops-sealed"
 LABEL org.opencontainers.image.licenses="MIT"
+LABEL quay.expires-after="4w"
 ENV container=oci
 STOPSIGNAL SIGRTMIN+3
 CMD ["/sbin/init"]
