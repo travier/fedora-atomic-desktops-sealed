@@ -78,7 +78,7 @@ jobs:
       - name: "Build disk image & OVMF variable file"
         run: |
           set -euxo pipefail
-          ./bcvk to-disk \
+          bcvk to-disk \
             --filesystem=btrfs \
             --composefs-backend \
             --bootloader=systemd \
