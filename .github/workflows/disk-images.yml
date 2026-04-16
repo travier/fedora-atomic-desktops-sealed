@@ -4,7 +4,7 @@
 name: "Build QCOW2 images"
 
 env:
-  # REGISTRY_GHCR: "ghcr.io/${{ github.repository_owner }}"
+  REGISTRY_GHCR: "ghcr.io/${{ github.repository_owner }}"
   REGISTRY_QUAY: "quay.io"
   REPO_NAME: "${{ github.event.repository.name }}"
 
