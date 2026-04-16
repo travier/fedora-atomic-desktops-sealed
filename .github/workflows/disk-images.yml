@@ -78,6 +78,8 @@ jobs:
       - name: "Build disk image & OVMF variable file"
         run: |
           set -euxo pipefail
+          podman pull ${REGISTRY_QUAY}/${REPO_NAME}/${VARIANT}:${VERSION}
+
           bcvk to-disk \
             --filesystem=btrfs \
             --composefs-backend \
@@ -117,6 +119,7 @@ jobs:
 
       - name: "Upload disk image as OCI artifact with oras"
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+        id: "push"
         shell: bash
         run: |
           oras push \
@@ -129,11 +132,10 @@ jobs:
           VARIANT: ${{ matrix.variant }}
           VERSION: ${{ matrix.version }}
 
-      # TODO
-      # - name: "Sign artifact (quay.io)"
-      #   if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
-      #   run: |
-      #     cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ env.REGISTRY_QUAY }}/${{ env.REPO_NAME }}/${{ matrix.variant }}@${{ steps.push_quay_io.outputs.digest }}
-      #   env:
-      #     COSIGN_EXPERIMENTAL: false
-      #     COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+      - name: "Sign artifact (quay.io)"
+        if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+        run: |
+          cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ env.REGISTRY_QUAY }}/${{ env.REPO_NAME }}/${{ matrix.variant }}@${{ steps.push.outputs.digest }}
+        env:
+          COSIGN_EXPERIMENTAL: false
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
