@@ -38,6 +38,9 @@ jobs:
       - name: "Checkout repo"
         uses: actions/checkout@v6
 
+      - name: "Runner setup"
+        uses: travier/bootc-dev-actions/bootc-ubuntu-setup@main
+
       - name: "Get Secure Boot signing key"
         run: |
           mkdir -p /tmp/keys

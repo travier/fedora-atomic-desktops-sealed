@@ -50,6 +50,9 @@ jobs:
       - name: "Checkout repo"
         uses: actions/checkout@v6
 
+      - name: "Runner setup"
+        uses: travier/bootc-dev-actions/bootc-ubuntu-setup@main
+
       - name: "Build container image"
         uses: redhat-actions/buildah-build@v2
         with:
