@@ -47,7 +47,7 @@ jobs:
           containerfiles: ${{ env.CONTAINERFILE }}
           oci: true
           build-args: |
-            VERSION=${{ matrix.version }}
+            RELEASE=${{ matrix.version }}
 
       - name: "Push to Container Registry (ghcr.io)"
         uses: redhat-actions/push-to-registry@v2
