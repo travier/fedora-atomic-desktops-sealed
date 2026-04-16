@@ -12,6 +12,9 @@ on:
   push:
     branches:
       - "main"
+    paths:
+      - "Containerfile"
+      - ".github/workflows/bootable-containers.yml"
   # We will need a distinct workflow for pull request builds as we will not
   # have access to secrets for signing in those.
   # pull_request:
