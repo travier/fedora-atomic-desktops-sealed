@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Timothée Ravier <tim@siosm.fr>
+# SPDX-License-Identifier: CC0-1.0
+
 # Container registry to get the base images from
 base_registry := "quay.io/fedora-ostree-desktops"
 

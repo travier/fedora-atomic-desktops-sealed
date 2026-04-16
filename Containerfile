@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Timothée Ravier <tim@siosm.fr>
+# SPDX-License-Identifier: CC0-1.0
+
 ARG BASE=overridden
 ARG SYSTEMDBOOT=overridden
 ARG TOOLS=overridden
