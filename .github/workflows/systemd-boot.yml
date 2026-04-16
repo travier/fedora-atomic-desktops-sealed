@@ -38,6 +38,15 @@ jobs:
       - name: "Checkout repo"
         uses: actions/checkout@v6
 
+      - name: "Get Secure Boot signing key"
+        run: |
+          mkdir -p /tmp/keys
+          printenv SB_KEY > /tmp/keys/key
+          printenv SB_CRT > /tmp/keys/crt
+        env:
+          SB_KEY: ${{ secrets.SB_KEY }}
+          SB_CRT: ${{ secrets.SB_CRT }}
+
       - name: "Build container image"
         uses: redhat-actions/buildah-build@v2
         with:
@@ -48,6 +57,13 @@ jobs:
           oci: true
           build-args: |
             RELEASE=${{ matrix.version }}
+          extra-args: |
+            --secret=id=secureboot_key,src=/tmp/keys/key
+            --secret=id=secureboot_crt,src=/tmp/keys/crt
+
+      - name: "Cleanup Secure Boot signing key"
+        if: always()
+        run: rm -vrf /tmp/keys
 
       - name: "Push to Container Registry (ghcr.io)"
         uses: redhat-actions/push-to-registry@v2
