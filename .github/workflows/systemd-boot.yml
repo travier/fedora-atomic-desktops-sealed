@@ -40,6 +40,8 @@ jobs:
 
       - name: "Runner setup"
         uses: travier/bootc-dev-actions/bootc-ubuntu-setup@main
+        with:
+          freespace: false
 
       - name: "Get Secure Boot signing key"
         run: |
