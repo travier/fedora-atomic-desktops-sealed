@@ -75,11 +75,10 @@ jobs:
           echo "Using version: ${version}"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
 
-      - name: "Build disk image & OVMF variable file"
+      - name: "Build disk image"
         run: |
           set -euxo pipefail
           podman pull ${REGISTRY_QUAY}/${REPO_NAME}/${VARIANT}:${VERSION}
-
           bcvk to-disk \
             --filesystem=btrfs \
             --composefs-backend \
@@ -88,15 +87,6 @@ jobs:
             --disk-size 20G \
             ${REGISTRY_QUAY}/${REPO_NAME}/${VARIANT}:${VERSION} \
             ${VARIANT}-${VERSION}.qcow2
-
-          GUID=$(cat keys/GUID)
-          virt-fw-vars \
-            --input "/usr/share/edk2/ovmf/OVMF_VARS_4M.secboot.qcow2" \
-            --secure-boot \
-            --set-pk  "$GUID" "keys/PK/PK.pem" \
-            --add-kek "$GUID" "keys/KEK/KEK.pem" \
-            --add-db  "$GUID" "keys/db/db.pem" \
-            -o "OVMF_VARS_CUSTOM.qcow2"
         env:
           VARIANT: ${{ matrix.variant }}
           VERSION: ${{ matrix.version }}
@@ -124,10 +114,8 @@ jobs:
         run: |
           oras push \
             --annotation "quay.expires-after=4w" \
-            ${REGISTRY_QUAY}/${REPO_NAME}/${VARIANT}:${VERSION}.qcow2
-            ${IMAGE}.qcow2
-            "${VARIANT}-${VERSION}.qcow2":application/vnd.qcow2.image \
-            "OVMF_VARS_CUSTOM.qcow2":application/vnd.qcow2.image
+            ${REGISTRY_QUAY}/${REPO_NAME}/${VARIANT}:${VERSION}.qcow2 \
+            "${VARIANT}-${VERSION}.qcow2":application/vnd.qcow2.image
         env:
           VARIANT: ${{ matrix.variant }}
           VERSION: ${{ matrix.version }}
