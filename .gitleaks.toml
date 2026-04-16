@@ -1,0 +1,8 @@
+[allowlist]
+description = "Allow list for strings related to Secure Boot keys"
+
+# We do not include secrets in GitHub workflows. We store them as GitHub
+# Action secrets and access them as needed.
+paths = [
+    '''\/.github\/workflows\/.*\.yml$''',
+]
