@@ -163,7 +163,7 @@ jobs:
       - name: "Sign container image (ghcr.io)"
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         run: |
-          cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ env.REGISTRY_GHCR }}/${{ env.REPO_NAME }}/${{ matrix.variant }}@${{ steps.push.outputs.digest }}
+          cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ env.REGISTRY_GHCR }}/${{ env.NAME }}@${{ steps.push.outputs.digest }}
         env:
           COSIGN_EXPERIMENTAL: false
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
@@ -190,7 +190,7 @@ jobs:
       - name: "Sign container image (quay.io)"
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         run: |
-          cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ env.REGISTRY_QUAY }}/${{ env.REPO_NAME }}/${{ matrix.variant }}@${{ steps.push_quay_io.outputs.digest }}
+          cosign sign -y --key env://COSIGN_PRIVATE_KEY ${{ env.REGISTRY_QUAY }}/${{ env.NAME }}@${{ steps.push_quay_io.outputs.digest }}
         env:
           COSIGN_EXPERIMENTAL: false
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
