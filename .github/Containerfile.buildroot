@@ -1,11 +1,11 @@
 # SPDX-FileCopyrightText: Timothée Ravier <tim@siosm.fr>
 # SPDX-License-Identifier: CC0-1.0
 
-ARG VERSION=overridden
+ARG RELEASE=overridden
 
 FROM ghcr.io/sigstore/cosign/cosign:v2.6.2 as cosign-bin
 
-FROM registry.fedoraproject.org/fedora-minimal:${VERSION}
+FROM registry.fedoraproject.org/fedora-minimal:${RELEASE}
 
 COPY --from=cosign-bin /ko-app/cosign /usr/bin/cosign
 
