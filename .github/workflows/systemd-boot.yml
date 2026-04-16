@@ -10,20 +10,8 @@ env:
   REGISTRY_QUAY: "quay.io"
 
 on:
-  pull_request:
-    branches:
-      - "main"
-    paths:
-      - ".github/Containerfile.systemd-boot"
-      - ".github/workflows/systemd-boot.yml"
-  push:
-    branches:
-      - "main"
-    paths:
-      - ".github/Containerfile.systemd-boot"
-      - ".github/workflows/systemd-boot.yml"
-  schedule:
-    - cron:  "0 0 * * MON"
+  # Only build on demand as we don't want to resign systemd-boot if there are
+  # no updates as it might change the PCR values (TBC).
   workflow_dispatch:
 
 # Allow:
