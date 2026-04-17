@@ -13,8 +13,10 @@ Container images are available both on `quay.io` and `ghcr.io`:
 
 ```
 cd ~/.local/share/libvirt/images
-oras pull quay.io/fedora-atomic-desktops-sealed/silverblue:44.20260330.0.qcow2
-oras pull quay.io/fedora-atomic-desktops-sealed/kinoite:44.20260330.0.qcow2
+# Update as needed by looking at the versions available in the registry
+VERSION=44.20260416.0
+oras pull "quay.io/fedora-atomic-desktops-sealed/silverblue:${VERSION}.qcow2"
+oras pull "quay.io/fedora-atomic-desktops-sealed/kinoite:${VERSION}.qcow2"
 ```
 
 - Boot the QCOW2 image with libvirt:
