@@ -112,13 +112,14 @@ jobs:
         id: "push"
         shell: bash
         run: |
-          digest="$(
+          output="$(
             oras push \
               --annotation "quay.expires-after=4w" \
               ${REGISTRY_QUAY}/${REPO_NAME}/${VARIANT}:${VERSION}.qcow2 \
-              "${VARIANT}-${VERSION}.qcow2":application/vnd.qcow2.image \
-              | jq --raw-output .digest
+              "${VARIANT}-${VERSION}.qcow2":application/vnd.qcow2.image
           )"
+          echo "oras output: ${output}"
+          digest="$(echo "${output}" | jq --raw-output '.digest')"
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
         env:
           VARIANT: ${{ matrix.variant }}
