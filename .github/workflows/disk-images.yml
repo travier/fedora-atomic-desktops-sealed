@@ -9,18 +9,21 @@ env:
   REPO_NAME: "${{ github.event.repository.name }}"
 
 on:
-  push:
-    branches:
-      - "main"
-    paths:
-      - ".github/workflows/disk-images.yml"
+  # FIXME: Do not run on push as we do not properly fetch the latest valid
+  # container tag yet
+  # push:
+  #   branches:
+  #     - "main"
+  #   paths:
+  #     - ".github/workflows/disk-images.yml"
   pull_request:
     branches:
       - "main"
     paths:
       - ".github/workflows/disk-images.yml"
   schedule:
-    - cron: '0 4 * * MON'
+    # FIXME: Manually set one hour after the container build
+    - cron: '0 5 * * MON'
   workflow_dispatch:
     inputs:
       version:
