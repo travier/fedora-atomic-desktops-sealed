@@ -49,7 +49,7 @@ jobs:
       fail-fast: false
       matrix:
         variant: ['silverblue', 'kinoite']
-        version: ['44']
+        release: ['44']
     steps:
       - name: "Checkout repo"
         uses: actions/checkout@v6
@@ -74,12 +74,13 @@ jobs:
           if [[ -n "${VERSION}" ]]; then
             version="${VERSION}"
           else
-            version="$(date '+%Y%m%d.0')"
+            version="${RELEASE}.$(date '+%Y%m%d').0"
           fi
           echo "Using version: ${version}"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
         env:
           VERSION: ${{ inputs.version }}
+          RELEASE: ${{ matrix.release }}
 
       - name: "Build disk image"
         run: |
@@ -95,7 +96,7 @@ jobs:
             ${VARIANT}-${VERSION}.qcow2
         env:
           VARIANT: ${{ matrix.variant }}
-          VERSION: ${{ matrix.version }}
+          VERSION: ${{ steps.version.outputs.version }}
 
       - name: "Install oras CLI"
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
@@ -130,7 +131,7 @@ jobs:
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
         env:
           VARIANT: ${{ matrix.variant }}
-          VERSION: ${{ matrix.version }}
+          VERSION: ${{ steps.version.outputs.version }}
 
       - name: "Sign artifact (quay.io)"
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
