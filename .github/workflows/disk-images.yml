@@ -115,6 +115,7 @@ jobs:
           output="$(
             oras push \
               --annotation "quay.expires-after=4w" \
+              --format json \
               ${REGISTRY_QUAY}/${REPO_NAME}/${VARIANT}:${VERSION}.qcow2 \
               "${VARIANT}-${VERSION}.qcow2":application/vnd.qcow2.image
           )"
