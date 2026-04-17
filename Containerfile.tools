@@ -12,7 +12,9 @@ set -x
 # We don't want openh264
 rm -f "/etc/yum.repos.d/fedora-cisco-openh264.repo"
 # Install ukify & signing tools
-dnf install -y systemd-ukify sbsigntools jq bootc
+dnf install -y systemd-ukify sbsigntools jq
+# Install latest bootc release
+dnf install -y --enablerepo=updates-testing --refresh bootc
 # Prepare output dir
 mkdir -p /boot/EFI/Linux
 EORUN
