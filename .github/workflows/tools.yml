@@ -14,13 +14,13 @@ on:
     branches:
       - "main"
     paths:
-      - ".github/Containerfile.tools"
+      - "Containerfile.tools"
       - ".github/workflows/tools.yml"
   push:
     branches:
       - "main"
     paths:
-      - ".github/Containerfile.tools"
+      - "Containerfile.tools"
       - ".github/workflows/tools.yml"
   schedule:
     - cron:  "0 0 * * MON"
