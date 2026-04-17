@@ -22,6 +22,11 @@ on:
   schedule:
     - cron: '0 4 * * MON'
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (tag) to build the images for. Defaults to today's tag"
+        required: false
+        default: ''
 
 # Allow:
 # - Read access to the repo content
@@ -62,18 +67,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # FIXME
-      # version="$(\
-      #   skopeo inspect --no-tags docker://${REGISTRY_GHCR}/${REPO_NAME}/${VARIANT}:${VERSION} \
-      #   | jq -r '.Labels."org.opencontainers.image.version"'
-      # )"
-      - name: "Find version"
+      - name: "Figure out version to build"
         id: version
         run: |
           set -euxo pipefail
-          version="$(date '+%Y%m%d.0')"
+          if [[ -n "${VERSION}" ]]; then
+            version="${VERSION}"
+          else
+            version="$(date '+%Y%m%d.0')"
+          fi
           echo "Using version: ${version}"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
+        env:
+          VERSION: ${{ inputs.version }}
 
       - name: "Build disk image"
         run: |
