@@ -26,6 +26,7 @@ dnf install -y fsverity-utils systemd-boot-unsigned
 # Remove rpm-ostree and the backends in GNOME Software and Plasma Discover
 dnf remove -y \
     rpm-ostree \
+    rpm-ostree-libs \
     gnome-software-rpm-ostree \
     plasma-discover-rpm-ostree
 
