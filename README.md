@@ -34,6 +34,28 @@ If you want to test them on real hardware, you will have to use `bootc install` 
 You can use the Fedora CoreOS live ISO for example.
 Notice: bootc 1.14.1 or later is required.
 
+### Manual installation using `bootc install to-disk`
+
+First, make sure that you have enough free space to pull the container image. If not, and if you have enough RAM, mount a tmpfs:
+
+```
+mount -t tmpfs -o size=10240M containers /var/lib/containers/storage/
+chcon "system_u:object_r:container_var_lib_t:s0" /var/lib/containers/storage
+```
+
+Then pull the container image and use it to install the system:
+
+```
+podman pull quay.io/fedora-atomic-desktops-sealed/kinoite:44
+podman run --rm --privileged --pid=host --ipc=host \
+  --security-opt label=type:unconfined_t \
+  -v /var/lib/containers:/var/lib/containers -v /dev:/dev \
+  quay.io/fedora-atomic-desktops-sealed/kinoite:44 \
+  bootc install to-disk --wipe --bootloader=systemd --composefs-backend /dev/<disk>
+```
+
+### Enrolling Secure Boot keys
+
 If you want to enroll your Secure Boot keys in your firmware, take a look at [sbctl](https://github.com/foxboron/sbctl).
 Make sure to read the [Option ROM section](https://github.com/Foxboron/sbctl/wiki/FAQ#option-rom) to avoid "soft bricking" your hardware.
 
