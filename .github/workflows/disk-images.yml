@@ -52,7 +52,7 @@ jobs:
       fail-fast: false
       matrix:
         variant: ['silverblue', 'kinoite']
-        release: ['44']
+        release: ['44', '45']
     steps:
       - name: "Checkout repo"
         uses: actions/checkout@v6
