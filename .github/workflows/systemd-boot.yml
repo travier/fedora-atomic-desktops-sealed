@@ -33,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release: ['44']
+        release: ['44', '45']
     steps:
       - name: "Checkout repo"
         uses: actions/checkout@v6
