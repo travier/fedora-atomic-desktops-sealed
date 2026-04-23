@@ -64,14 +64,23 @@ EOF
 kver=$(cd "/usr/lib/modules" && echo *)
 dracut -vf --install "/etc/passwd /etc/group" "/usr/lib/modules/$kver/initramfs.img" "$kver"
 
+# Prepare folders in /boot
+mkdir -p /boot/EFI/Linux
+
+###############################################################################
+# Changes for development go here
+
 # Enable sshd for bcvk
 systemctl enable sshd.service
 
-# Disable root password for development
+# Disable root password
 passwd -d root
 
-# Prepare folders in /boot
-mkdir -p /boot/EFI/Linux
+# Enable systemd debug shell for the initrd & final system
+cat > "/usr/lib/bootc/kargs.d/10-debug.toml" << 'EOF'
+kargs = ["rd.systemd.debug_shell", "systemd.debug_shell"]
+EOF
+###############################################################################
 EORUN
 
 # Replace Fedora's systemd-boot with our signed one
