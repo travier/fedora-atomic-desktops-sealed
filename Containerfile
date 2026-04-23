@@ -80,6 +80,12 @@ passwd -d root
 cat > "/usr/lib/bootc/kargs.d/10-debug.toml" << 'EOF'
 kargs = ["rd.systemd.debug_shell", "systemd.debug_shell"]
 EOF
+
+# Mask systemd-tpm2-setup-early.service as it breaks with some TPMs
+# See: https://github.com/systemd/systemd/issues/40159
+cat > "/usr/lib/bootc/kargs.d/10-tpm2-workaround.toml" << 'EOF'
+kargs = ["systemd.mask=systemd-tpm2-setup-early.service"]
+EOF
 ###############################################################################
 EORUN
 
