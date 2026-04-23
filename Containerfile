@@ -16,7 +16,7 @@ RUN --mount=type=tmpfs,target=/run \
 set -euo pipefail
 set -x
 
-# We don't want openh264
+# We can not ship openh264 in the image
 rm -f "/etc/yum.repos.d/fedora-cisco-openh264.repo"
 
 # Install fsverity utils to make it easier to check things
@@ -39,7 +39,7 @@ rm -vrf "/usr/lib/bootupd/updates"
 
 # Mount the root filesystem read-write
 # Enable btrfs compression
-cat > "/usr/lib/bootc/kargs.d/10-rootfs-kargs.toml" << 'EOF'
+cat > "/usr/lib/bootc/kargs.d/10-rootfs.toml" << 'EOF'
 kargs = ["rw", "rootflags=compress=zstd:1"]
 EOF
 
