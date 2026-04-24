@@ -56,8 +56,18 @@ podman run --rm --privileged --pid=host --ipc=host \
 
 ### Enrolling Secure Boot keys
 
-If you want to enroll your Secure Boot keys in your firmware, take a look at [sbctl](https://github.com/foxboron/sbctl).
-Make sure to read the [Option ROM section](https://github.com/Foxboron/sbctl/wiki/FAQ#option-rom) to avoid "soft bricking" your hardware.
+If you want to enroll your Secure Boot keys in your firmware, take a look at [sbctl](https://github.com/foxboron/sbctl) or [systemd-boot's loader.conf](https://www.freedesktop.org/software/systemd/man/latest/loader.conf.html#secure-boot-enroll).
+Make sure to read the [Option ROM section](https://github.com/Foxboron/sbctl/wiki/FAQ#option-rom) and to enroll Microsoft's keys to avoid "soft bricking" your hardware.
+
+Example commands to enroll keys using `sbctl`:
+
+```
+sbctl --config sbctl.conf status
+sbctl --config sbctl.conf enroll-keys --microsoft
+sbctl --config sbctl.conf list-enrolled-keys
+```
+
+In the future, once `shim` is in the boot path, we will be able to use MOK to enroll custom keys instead.
 
 ## How to build your own
 
