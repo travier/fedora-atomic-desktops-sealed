@@ -158,11 +158,14 @@ libvirt variant:
 uki-addon name commandline:
     #!/bin/bash
     set -euo pipefail
-    podman build \
-        -t {{registry}}/uki-addon:{{name}} \
-        --build-arg=TOOLS={{signing_tools_container}} \
-        --build-arg=NAME={{name}} \
-        --build-arg=COMMANDLINE="{{commandline}}" \
+    podman run --rm -ti --security-opt=label=disable \
+        --volume $(pwd):/run/src --workdir /run/src \
         --secret=id=secureboot_key,src=keys/db/db.key \
         --secret=id=secureboot_crt,src=keys/db/db.pem \
-        -f Containerfile.uki-addon
+        {{signing_tools_container}} \
+        ukify build \
+            --cmdline "{{commandline}}" \
+            --signtool sbsign \
+            --secureboot-private-key /run/secrets/secureboot_key \
+            --secureboot-certificate /run/secrets/secureboot_crt \
+            --output "/run/src/{{name}}.addon.efi"
