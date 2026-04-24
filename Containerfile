@@ -62,6 +62,7 @@ EOF
 
 # Include systemd's hwdb
 # See: https://github.com/systemd/systemd/issues/40159
+# See: https://github.com/systemd/systemd/issues/40485
 cat > "/usr/lib/dracut/dracut.conf.d/20-bootc-composefs.conf" << 'EOF'
 install_items+=" /etc/udev/hwdb.bin "
 EOF
@@ -89,6 +90,7 @@ EOF
 
 # Mask some systemd units that currently do not work well with some TPMs
 # See: https://github.com/systemd/systemd/issues/40159
+# See: https://github.com/systemd/systemd/issues/40485
 cat > "/usr/lib/bootc/kargs.d/10-tpm2-workaround.toml" << 'EOF'
 kargs = [
   "rd.systemd.mask=systemd-tpm2-setup-early.service",
