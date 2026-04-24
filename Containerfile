@@ -87,10 +87,17 @@ cat > "/usr/lib/bootc/kargs.d/10-debug.toml" << 'EOF'
 kargs = ["rd.systemd.debug_shell", "systemd.debug_shell"]
 EOF
 
-# Mask systemd-tpm2-setup-early.service as it breaks with some TPMs
+# Mask some systemd units that currently do not work well with some TPMs
 # See: https://github.com/systemd/systemd/issues/40159
 cat > "/usr/lib/bootc/kargs.d/10-tpm2-workaround.toml" << 'EOF'
-kargs = ["systemd.mask=systemd-tpm2-setup-early.service"]
+kargs = [
+  "rd.systemd.mask=systemd-tpm2-setup-early.service",
+  "systemd.mask=systemd-tpm2-setup-early.service",
+  "systemd.mask=systemd-tpm2-setup.service",
+  "systemd.mask=systemd-pcrphase.service",
+  "systemd.mask=systemd-pcrproduct.service",
+
+]
 EOF
 ###############################################################################
 EORUN
