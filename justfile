@@ -169,3 +169,12 @@ uki-addon name commandline:
             --secureboot-private-key /run/secrets/secureboot_key \
             --secureboot-certificate /run/secrets/secureboot_crt \
             --output "/run/src/{{name}}.addon.efi"
+
+# Inspect a UKI or UKI addon
+inspect uki:
+    #!/bin/bash
+    set -euo pipefail
+    podman run --rm -ti --security-opt=label=disable \
+        --volume $(pwd):/run/src --workdir /run/src \
+        {{signing_tools_container}} \
+        ukify inspect "/run/src/{{uki}}"
