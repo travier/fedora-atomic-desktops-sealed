@@ -60,6 +60,12 @@ cat > "/usr/lib/dracut/dracut.conf.d/20-bootc-composefs.conf" << 'EOF'
 add_dracutmodules+=" bootc "
 EOF
 
+# Include systemd's hwdb
+# See: https://github.com/systemd/systemd/issues/40159
+cat > "/usr/lib/dracut/dracut.conf.d/20-bootc-composefs.conf" << 'EOF'
+install_items+=" /etc/udev/hwdb.bin "
+EOF
+
 # Rebuild the initramfs to get bootc-initramfs-setup
 kver=$(cd "/usr/lib/modules" && echo *)
 dracut -vf --install "/etc/passwd /etc/group" "/usr/lib/modules/$kver/initramfs.img" "$kver"
