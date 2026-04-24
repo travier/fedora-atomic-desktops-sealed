@@ -63,9 +63,9 @@ EOF
 # Include systemd's hwdb
 # See: https://github.com/systemd/systemd/issues/40159
 # See: https://github.com/systemd/systemd/issues/40485
-cat > "/usr/lib/dracut/dracut.conf.d/20-bootc-composefs.conf" << 'EOF'
-install_items+=" /etc/udev/hwdb.bin "
-EOF
+# cat > "/usr/lib/dracut/dracut.conf.d/20-bootc-composefs.conf" << 'EOF'
+# install_items+=" /etc/udev/hwdb.bin "
+# EOF
 
 # Rebuild the initramfs to get bootc-initramfs-setup
 kver=$(cd "/usr/lib/modules" && echo *)
@@ -98,7 +98,6 @@ kargs = [
   "systemd.mask=systemd-tpm2-setup.service",
   "systemd.mask=systemd-pcrphase.service",
   "systemd.mask=systemd-pcrproduct.service",
-
 ]
 EOF
 ###############################################################################
