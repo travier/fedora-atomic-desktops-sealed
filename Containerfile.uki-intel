@@ -1,0 +1,105 @@
+# SPDX-FileCopyrightText: Timothée Ravier <tim@siosm.fr>
+# SPDX-License-Identifier: CC0-1.0
+
+ARG BASE=overridden
+ARG KERNEL=overriden
+ARG TOOLS=overridden
+
+FROM $KERNEL as kernel
+
+FROM $BASE as rootfs
+
+RUN <<EORUN
+set -euxo pipefail
+# Omit all GPU drivers and firmwares excepted those for Intel GPUs
+cat > "/usr/lib/dracut/dracut.conf.d/20-intel-only.conf" << 'EOF'
+omit_drivers+=" amdgpu amdxcp ast gud hyperv_drm mgag200 nouveau radeon st7571-i2c st7586 st7735r ssd130x vboxvideo vkms vmwgfx "
+remove_items+=" /usr/lib/firmware/amdgpu /usr/lib/firmware/nvidia /usr/lib/firmware/radeon "
+EOF
+EORUN
+
+FROM rootfs as initrd
+
+RUN <<EORUN
+set -euxo pipefail
+kver=$(cd "/usr/lib/modules" && echo *)
+# Rebuild the initramfs now that dracut's configuration is complete
+dracut -vf --install "/etc/passwd /etc/group" "/initramfs" "$kver"
+EORUN
+
+FROM $TOOLS as sealed-uki
+
+# Copy the kernel and the initrd into the image to build the UKI
+COPY --from=kernel /vmlinuz /vmlinuz
+COPY --from=initrd /initramfs /initramfs
+
+RUN --mount=type=tmpfs,target=/run \
+    --mount=type=tmpfs,target=/tmp \
+    --mount=type=tmpfs,target=/var/tmp \
+    --mount=type=secret,id=secureboot_key \
+    --mount=type=secret,id=secureboot_crt \
+    --mount=type=bind,from=rootfs,src=/,target=/run/target,rw \
+    --mount=type=bind,target=/run/src,ro \
+    <<EORUN
+set -euxo pipefail
+
+target="/run/target"
+output="/boot/EFI/Linux"
+secrets="/run/secrets"
+
+# Find the kernel version (needed for output filename)
+kver=$(cd "${target}/usr/lib/modules" && echo *)
+
+# Baseline ukify options
+ukifyargs=(
+    --measure
+    --json pretty
+    --output "${output}/${kver}.efi"
+)
+
+# Signing options, we use sbsign by default
+ukifyargs+=(
+    --signtool sbsign
+    --secureboot-private-key "${secrets}/secureboot_key"
+    --secureboot-certificate "${secrets}/secureboot_crt"
+)
+
+# Baseline container ukify options
+containerukifyargs=(--rootfs "${target}")
+
+# Build the UKI using bootc container ukify
+# This computes the composefs digest, reads kargs from kargs.d, and invokes ukify
+# FIXME: Disabled until we get support for passing the kernel & initrd as parameters
+# FIXME: Manual flow below
+# bootc container ukify "${containerukifyargs[@]}" -- "${ukifyargs[@]}"
+
+# Compute the composefs digest from the mounted rootfs
+digest="$(bootc container compute-composefs-digest "${target}")"
+
+# Create command line
+{
+printf "composefs=${digest} rw rootflags=compress=zstd:1"
+# Debug options
+printf " rd.systemd.debug_shell systemd.debug_shell"
+# Workarounds
+printf " rd.systemd.mask=systemd-tpm2-setup-early.service"
+printf " systemd.mask=systemd-tpm2-setup-early.service"
+printf " systemd.mask=systemd-tpm2-setup.service"
+printf " systemd.mask=systemd-pcrphase.service"
+printf " systemd.mask=systemd-pcrproduct.service"
+printf "\n"
+} > /etc/kernel/cmdline
+
+# Generate and sign the UKI with the digest embedded
+ukify build \
+  --linux "/vmlinuz" \
+  --initrd "/initramfs" \
+  --uname="${kver}" \
+  --cmdline "@/etc/kernel/cmdline" \
+  --os-release "@${target}/usr/lib/os-release" \
+  "${ukifyargs[@]}"
+EORUN
+
+# Copy UKI to our final image
+FROM rootfs as final
+COPY --from=sealed-uki /boot/EFI/Linux /boot/EFI/Linux

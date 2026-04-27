@@ -58,7 +58,8 @@ build-tools:
         --build-arg=RELEASE={{release}} \
         --file Containerfile.tools
 
-# Build a sealed container image derived from the Fedora Silverblue or Kinoite unofficial bootable container image
+# Build a generic sealed container image derived from the Fedora Silverblue or
+# Kinoite unofficial bootable container image
 [arg('variant', pattern='silverblue|kinoite')]
 build variant:
     #!/bin/bash
@@ -70,6 +71,45 @@ build variant:
         --tag {{registry}}/{{variant}}:{{version}} \
         --tag {{registry}}/{{variant}}:{{release}} \
         --skip-unused-stages=false \
+        --volume $(pwd):/run/src \
+        --security-opt=label=disable \
+        --secret=id=secureboot_key,src=keys/db/db.key \
+        --secret=id=secureboot_crt,src=keys/db/db.pem \
+        .
+
+# Extract the kernel from an image and remove the initrd to build a rechunked
+# base image with generic configuration
+[arg('variant', pattern='silverblue|kinoite')]
+build-base variant:
+    #!/bin/bash
+    set -euo pipefail
+    podman build \
+        --file Containerfile.kernel \
+        --build-arg=BASE={{base_registry}}/{{variant}}:{{version}} \
+        --tag {{registry}}/{{variant}}-kernel:{{version}} \
+        .
+    podman build \
+        --file Containerfile.base \
+        --build-arg=BASE={{base_registry}}/{{variant}}:{{version}} \
+        --build-arg=SYSTEMDBOOT={{systemd_boot_container}} \
+        --tag {{registry}}/{{variant}}-base:{{version}} \
+        --skip-unused-stages=false \
+        --volume $(pwd):/run/src \
+        --security-opt=label=disable \
+        .
+
+# Build a sealed image with support for all GPU or only a specific GPU family
+[arg('variant', pattern='silverblue|kinoite'), arg('gpu', pattern='generic|intel')]
+build-uki variant gpu="generic":
+    #!/bin/bash
+    set -euo pipefail
+    podman build \
+        --file Containerfile.uki-{{gpu}} \
+        --build-arg=BASE={{registry}}/{{variant}}-base:{{version}} \
+        --build-arg=KERNEL={{registry}}/{{variant}}-kernel:{{version}} \
+        --build-arg=TOOLS={{signing_tools_container}} \
+        --tag {{registry}}/{{variant}}-{{gpu}}:{{version}} \
+        --tag {{registry}}/{{variant}}-{{gpu}}:{{release}} \
         --volume $(pwd):/run/src \
         --security-opt=label=disable \
         --secret=id=secureboot_key,src=keys/db/db.key \
