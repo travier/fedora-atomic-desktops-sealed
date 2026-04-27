@@ -13,8 +13,7 @@ RUN --mount=type=tmpfs,target=/run \
     --mount=type=tmpfs,target=/tmp \
     --mount=type=tmpfs,target=/var \
     <<EORUN
-set -euo pipefail
-set -x
+set -euxo pipefail
 
 # We can not ship openh264 in the image
 rm -f "/etc/yum.repos.d/fedora-cisco-openh264.repo"
@@ -139,8 +138,7 @@ RUN --mount=type=tmpfs,target=/run \
     --mount=type=secret,id=secureboot_crt \
     --mount=type=bind,from=rootfs-chunked,src=/,target=/run/target \
     <<EORUN
-set -euo pipefail
-set -x
+set -euxo pipefail
 
 target="/run/target"
 output="/boot/EFI/Linux"
@@ -172,7 +170,7 @@ containerukifyargs=(--rootfs "${target}")
 
 # Build the UKI using bootc container ukify
 # This computes the composefs digest, reads kargs from kargs.d, and invokes ukify
-bootc container ukify "${containerukifyargs[@]}" "${missing_verity[@]}" -- "${ukifyargs[@]}"
+bootc container ukify "${containerukifyargs[@]}" -- "${ukifyargs[@]}"
 EORUN
 
 # Copy UKI to our final image
