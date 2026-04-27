@@ -33,7 +33,7 @@ all:
 generate-secure-boot-keys:
     #!/bin/bash
     set -euo pipefail
-    podman build -t sbctl -f Containerfile.sbctl
+    podman build --tag sbctl --file Containerfile.sbctl
     podman run --rm -ti --security-opt=label=disable \
         --volume $(pwd):/run/src --workdir /run/src \
         localhost/sbctl:latest create-keys --config sbctl.conf
@@ -43,20 +43,20 @@ sign-systemd-boot:
     #!/bin/bash
     set -euo pipefail
     podman build \
-        -t systemd-boot:{{release}} \
+        --tag systemd-boot:{{release}} \
         --build-arg=RELEASE={{release}} \
         --secret=id=secureboot_key,src=keys/db/db.key \
         --secret=id=secureboot_crt,src=keys/db/db.pem \
-        -f Containerfile.systemd-boot
+        --file Containerfile.systemd-boot
 
 # Build the container image with the tools to build and sign UKIs
 build-tools:
     #!/bin/bash
     set -euo pipefail
     podman build \
-        -t tools:{{release}} \
+        --tag tools:{{release}} \
         --build-arg=RELEASE={{release}} \
-        -f Containerfile.tools
+        --file Containerfile.tools
 
 # Build a sealed container image derived from the Fedora Silverblue or Kinoite unofficial bootable container image
 [arg('variant', pattern='silverblue|kinoite')]
@@ -67,10 +67,10 @@ build variant:
         --build-arg=BASE={{base_registry}}/{{variant}}:{{version}} \
         --build-arg=SYSTEMDBOOT={{systemd_boot_container}} \
         --build-arg=TOOLS={{signing_tools_container}} \
-        -t {{registry}}/{{variant}}:{{version}} \
-        -t {{registry}}/{{variant}}:{{release}} \
+        --tag {{registry}}/{{variant}}:{{version}} \
+        --tag {{registry}}/{{variant}}:{{release}} \
         --skip-unused-stages=false \
-        -v $(pwd):/run/src \
+        --volume $(pwd):/run/src \
         --security-opt=label=disable \
         --secret=id=secureboot_key,src=keys/db/db.key \
         --secret=id=secureboot_crt,src=keys/db/db.pem \
