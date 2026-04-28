@@ -3,6 +3,7 @@
 
 ARG BASE=overridden
 ARG KERNEL=overriden
+ARG GPU_FAMILY=overriden
 ARG TOOLS=overridden
 
 FROM $KERNEL as kernel
@@ -11,11 +12,61 @@ FROM $BASE as rootfs
 
 RUN <<EORUN
 set -euxo pipefail
-# Omit all GPU drivers and firmwares excepted those for Intel GPUs
-cat > "/usr/lib/dracut/dracut.conf.d/20-intel-only.conf" << 'EOF'
-omit_drivers+=" amdgpu amdxcp ast gud hyperv_drm mgag200 nouveau radeon st7571-i2c st7586 st7735r ssd130x vboxvideo vkms vmwgfx "
-remove_items+=" /usr/lib/firmware/amdgpu /usr/lib/firmware/nvidia /usr/lib/firmware/radeon "
-EOF
+if [[ "${GPU_FAMILY}" == "amd" ]]; then
+    cat > "/usr/lib/dracut/dracut.conf.d/20-amd-only.conf" << 'EOF'
+    # Omit all GPU drivers and firmwares excepted those for AMD GPUs
+
+    # Exclude Intel drivers
+    omit_drivers+=" gma500 i915 xe "
+    # Exclude Intel firmwares
+    remove_items+=" /usr/lib/firmware/i915 /usr/lib/firmware/xe "
+
+    # Exclude NVIDIA drivers
+    omit_drivers+=" nouveau "
+    # Exclude NVIDIA firmwares
+    remove_items+=" /usr/lib/firmware/nvidia "
+
+    # Exclude other misc drivers
+    omit_drivers+=" ast gud hyperv_drm mgag200 st7571-i2c st7586 st7735r ssd130x vboxvideo vkms vmwgfx "
+    EOF
+elif [[ "${GPU_FAMILY}" == "intel" ]]; then
+    cat > "/usr/lib/dracut/dracut.conf.d/20-intel-only.conf" << 'EOF'
+    # Omit all GPU drivers and firmwares excepted those for Intel GPUs
+
+    # Exclude AMD drivers
+    omit_drivers+=" amdgpu amdxcp radeon "
+    # Exclude AMD firmwares
+    remove_items+=" /usr/lib/firmware/amdgpu /usr/lib/firmware/radeon "
+
+    # Exclude NVIDIA drivers
+    omit_drivers+=" nouveau "
+    # Exclude NVIDIA firmwares
+    remove_items+=" /usr/lib/firmware/nvidia "
+
+    # Exclude other misc drivers
+    omit_drivers+=" ast gud hyperv_drm mgag200 st7571-i2c st7586 st7735r ssd130x vboxvideo vkms vmwgfx "
+    EOF
+elif [[ "${GPU_FAMILY}" == "nvidia" ]]; then
+    cat > "/usr/lib/dracut/dracut.conf.d/20-nvidia-only.conf" << 'EOF'
+    # Omit all GPU drivers and firmwares excepted those for NVIDIA GPUs
+
+    # Exclude AMD drivers
+    omit_drivers+=" amdgpu amdxcp radeon "
+    # Exclude AMD firmwares
+    remove_items+=" /usr/lib/firmware/amdgpu /usr/lib/firmware/radeon "
+
+    # Exclude Intel drivers
+    omit_drivers+=" gma500 i915 xe "
+    # Exclude Intel firmwares
+    remove_items+=" /usr/lib/firmware/i915 /usr/lib/firmware/xe "
+
+    # Exclude other misc drivers
+    omit_drivers+=" ast gud hyperv_drm mgag200 st7571-i2c st7586 st7735r ssd130x vboxvideo vkms vmwgfx "
+    EOF
+else
+    # Generic case, keep the defaults
+    exit 0
+fi
 EORUN
 
 FROM rootfs as initrd

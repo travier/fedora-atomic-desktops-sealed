@@ -99,17 +99,23 @@ build-base variant:
         .
 
 # Build a sealed image with support for all GPU or only a specific GPU family
-[arg('variant', pattern='silverblue|kinoite'), arg('gpu', pattern='generic|intel')]
+[arg('variant', pattern='silverblue|kinoite'), arg('gpu', pattern='generic|amd|intel|nvidia')]
 build-uki variant gpu="generic":
     #!/bin/bash
     set -euo pipefail
+    if [[ "{{gpu}}" == "generic" ]]; then
+        repo="{{variant}}"
+    else
+        repo="{{variant}}-{{gpu}}"
+    fi
     podman build \
-        --file Containerfile.uki-{{gpu}} \
+        --file Containerfile.uki \
         --build-arg=BASE={{registry}}/{{variant}}-base:{{version}} \
         --build-arg=KERNEL={{registry}}/{{variant}}-kernel:{{version}} \
+        --build-arg=GPU_FAMILY={{gpu}} \
         --build-arg=TOOLS={{signing_tools_container}} \
-        --tag {{registry}}/{{variant}}-{{gpu}}:{{version}} \
-        --tag {{registry}}/{{variant}}-{{gpu}}:{{release}} \
+        --tag {{registry}}/${repo}:{{version}} \
+        --tag {{registry}}/${repo}:{{release}} \
         --volume $(pwd):/run/src \
         --security-opt=label=disable \
         --secret=id=secureboot_key,src=keys/db/db.key \
