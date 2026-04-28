@@ -7,7 +7,7 @@ ARG TOOLS=overridden
 
 FROM $SYSTEMDBOOT as systemd-boot
 
-FROM $BASE as rootfs
+FROM $BASE as rootfs-base
 
 RUN --mount=type=tmpfs,target=/run \
     --mount=type=tmpfs,target=/tmp \
@@ -34,7 +34,12 @@ dnf upgrade -y --enablerepo=updates-testing --refresh bootc
 
 # Uninstall bootupd (no support for systemd-boot yet)
 rpm -e bootupd
-rm -vrf "/usr/lib/bootupd/updates"
+rm -vrf "/usr/lib/bootupd"
+# Legacy ostree folder
+rm -vrf "/usr/lib/ostree-boot"
+# Remove GRUB2
+rpm -e --nodeps grub2-common grub2-efi-ia32 grub2-efi-x64 grub2-pc \
+    grub2-pc-modules grub2-tools grub2-tools-minimal
 
 # Mount the root filesystem read-write
 # Enable btrfs compression
@@ -59,16 +64,21 @@ cat > "/usr/lib/dracut/dracut.conf.d/20-bootc-composefs.conf" << 'EOF'
 add_dracutmodules+=" bootc "
 EOF
 
-# Include systemd's hwdb
-# See: https://github.com/systemd/systemd/issues/40159
-# See: https://github.com/systemd/systemd/issues/40485
-# cat > "/usr/lib/dracut/dracut.conf.d/20-bootc-composefs.conf" << 'EOF'
-# install_items+=" /etc/udev/hwdb.bin "
-# EOF
-
-# Rebuild the initramfs to get bootc-initramfs-setup
-kver=$(cd "/usr/lib/modules" && echo *)
-dracut -vf --install "/etc/passwd /etc/group" "/usr/lib/modules/$kver/initramfs.img" "$kver"
+# Remove more dracut modules to reduce the size of the initramfs
+cat > "/usr/lib/dracut/dracut.conf.d/20-omit-modules.conf" << 'EOF'
+# FIPS is not supported on Fedora and you need to do your own build anyway
+omit_dracutmodules+=" fips fips-crypto-policies "
+# Do not include support from booting from a LUN SAS devices
+omit_dracutmodules+=" lunmask "
+# No LVM support for now
+omit_dracutmodules+=" lvm "
+# memstrack is for debug and development
+omit_dracutmodules+=" memstrack "
+# We don't include kernel module keys in the initrd
+omit_dracutmodules+=" modsign "
+# NSS is not included in the initrd
+omit_dracutmodules+=" nss-softokn "
+EOF
 
 # Prepare folders in /boot
 mkdir -p /boot/EFI/Linux
@@ -105,8 +115,24 @@ EORUN
 # Replace Fedora's systemd-boot with our signed one
 COPY --from=systemd-boot /systemd-bootx64.efi /usr/lib/systemd/boot/efi/systemd-bootx64.efi
 
-FROM rootfs as lint
-RUN bootc container lint
+# Make sure we pass the lints
+FROM rootfs-base as lint
+RUN bootc container lint --fatal-warnings --no-truncate
+
+FROM rootfs-base as rootfs
+RUN <<EORUN
+set -euxo pipefail
+
+kver=$(cd "/usr/lib/modules" && echo *)
+
+# Remove the initrd from the base image. We'll rebuilt it in a later stage for
+# each GPU vendor target and include it in the UKI.
+rm "/usr/lib/modules/$kver/initramfs.img"
+
+# Remove the kernel from the base image as we made a copy in another stage. It
+# will be included in the UKI in a later stage.
+rm "/usr/lib/modules/$kver/vmlinuz"
+EORUN
 
 # Rechunk container image to ensure that we compute the correct composefs hash
 # - Use more layers (128)
@@ -129,50 +155,3 @@ LABEL quay.expires-after="4w"
 ENV container=oci
 STOPSIGNAL SIGRTMIN+3
 CMD ["/sbin/init"]
-
-FROM $TOOLS as sealed-uki
-RUN --mount=type=tmpfs,target=/run \
-    --mount=type=tmpfs,target=/tmp \
-    --mount=type=tmpfs,target=/var/tmp \
-    --mount=type=secret,id=secureboot_key \
-    --mount=type=secret,id=secureboot_crt \
-    --mount=type=bind,from=rootfs-chunked,src=/,target=/run/target \
-    <<EORUN
-set -euxo pipefail
-
-target="/run/target"
-output="/boot/EFI/Linux"
-secrets="/run/secrets"
-
-# Find the kernel version (needed for output filename)
-kver=$(bootc container inspect --rootfs "${target}" --json | jq -r '.kernel.version')
-if [ -z "$kver" ] || [ "$kver" = "null" ]; then
-  echo "Error: No kernel found" >&2
-  exit 1
-fi
-
-# Baseline ukify options
-ukifyargs=(
-    --measure
-    --json pretty
-    --output "${output}/${kver}.efi"
-)
-
-# Signing options, we use sbsign by default
-ukifyargs+=(
-    --signtool sbsign
-    --secureboot-private-key "${secrets}/secureboot_key"
-    --secureboot-certificate "${secrets}/secureboot_crt"
-)
-
-# Baseline container ukify options
-containerukifyargs=(--rootfs "${target}")
-
-# Build the UKI using bootc container ukify
-# This computes the composefs digest, reads kargs from kargs.d, and invokes ukify
-bootc container ukify "${containerukifyargs[@]}" -- "${ukifyargs[@]}"
-EORUN
-
-# Copy UKI to our final image
-FROM rootfs-chunked as final
-COPY --from=sealed-uki /boot/EFI/Linux /boot/EFI/Linux

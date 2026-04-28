@@ -5,8 +5,7 @@ ARG RELEASE=overridden
 FROM registry.fedoraproject.org/fedora-minimal:${RELEASE} as builder
 
 RUN <<EORUN
-set -euo pipefail
-set -x
+set -euxo pipefail
 # We don't want openh264
 rm -f "/etc/yum.repos.d/fedora-cisco-openh264.repo"
 dnf install -y systemd-boot-unsigned sbsigntools
@@ -16,8 +15,7 @@ RUN --mount=type=tmpfs,target=/run \
     --mount=type=secret,id=secureboot_key \
     --mount=type=secret,id=secureboot_crt \
     <<EORUN
-set -euo pipefail
-set -x
+set -euxo pipefail
 sbsign \
     --key /run/secrets/secureboot_key \
     --cert /run/secrets/secureboot_crt \

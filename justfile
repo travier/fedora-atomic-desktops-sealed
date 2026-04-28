@@ -8,7 +8,7 @@ base_registry := "quay.io/fedora-ostree-desktops"
 registry := "quay.io/fedora-atomic-desktops-sealed"
 
 # Version of the container image to use as base
-version := "44.20260414.0"
+version := "44.20260426.0"
 
 # Major Fedora version used
 release := "44"
@@ -33,7 +33,7 @@ all:
 generate-secure-boot-keys:
     #!/bin/bash
     set -euo pipefail
-    podman build -t sbctl -f Containerfile.sbctl
+    podman build --tag sbctl --file Containerfile.sbctl
     podman run --rm -ti --security-opt=label=disable \
         --volume $(pwd):/run/src --workdir /run/src \
         localhost/sbctl:latest create-keys --config sbctl.conf
@@ -43,22 +43,23 @@ sign-systemd-boot:
     #!/bin/bash
     set -euo pipefail
     podman build \
-        -t systemd-boot:{{release}} \
+        --tag systemd-boot:{{release}} \
         --build-arg=RELEASE={{release}} \
         --secret=id=secureboot_key,src=keys/db/db.key \
         --secret=id=secureboot_crt,src=keys/db/db.pem \
-        -f Containerfile.systemd-boot
+        --file Containerfile.systemd-boot
 
 # Build the container image with the tools to build and sign UKIs
 build-tools:
     #!/bin/bash
     set -euo pipefail
     podman build \
-        -t tools:{{release}} \
+        --tag tools:{{release}} \
         --build-arg=RELEASE={{release}} \
-        -f Containerfile.tools
+        --file Containerfile.tools
 
-# Build a sealed container image derived from the Fedora Silverblue or Kinoite unofficial bootable container image
+# Build a generic sealed container image derived from the Fedora Silverblue or
+# Kinoite unofficial bootable container image
 [arg('variant', pattern='silverblue|kinoite')]
 build variant:
     #!/bin/bash
@@ -67,10 +68,55 @@ build variant:
         --build-arg=BASE={{base_registry}}/{{variant}}:{{version}} \
         --build-arg=SYSTEMDBOOT={{systemd_boot_container}} \
         --build-arg=TOOLS={{signing_tools_container}} \
-        -t {{registry}}/{{variant}}:{{version}} \
-        -t {{registry}}/{{variant}}:{{release}} \
+        --tag {{registry}}/{{variant}}:{{version}} \
+        --tag {{registry}}/{{variant}}:{{release}} \
         --skip-unused-stages=false \
-        -v $(pwd):/run/src \
+        --volume $(pwd):/run/src \
+        --security-opt=label=disable \
+        --secret=id=secureboot_key,src=keys/db/db.key \
+        --secret=id=secureboot_crt,src=keys/db/db.pem \
+        .
+
+# Extract the kernel from an image and remove the initrd to build a rechunked
+# base image with generic configuration
+[arg('variant', pattern='silverblue|kinoite')]
+build-base variant:
+    #!/bin/bash
+    set -euo pipefail
+    podman build \
+        --file Containerfile.kernel \
+        --build-arg=BASE={{base_registry}}/{{variant}}:{{version}} \
+        --tag {{registry}}/{{variant}}-kernel:{{version}} \
+        .
+    podman build \
+        --file Containerfile.base \
+        --build-arg=BASE={{base_registry}}/{{variant}}:{{version}} \
+        --build-arg=SYSTEMDBOOT={{systemd_boot_container}} \
+        --tag {{registry}}/{{variant}}-base:{{version}} \
+        --skip-unused-stages=false \
+        --volume $(pwd):/run/src \
+        --security-opt=label=disable \
+        .
+
+# Build a sealed image with support for all GPU or only a specific GPU family
+[arg('variant', pattern='silverblue|kinoite'), arg('gpu', pattern='generic|amd|intel|nvidia')]
+build-uki variant gpu="generic":
+    #!/bin/bash
+    set -euo pipefail
+    if [[ "{{gpu}}" == "generic" ]]; then
+        repo="{{variant}}"
+    else
+        repo="{{variant}}-{{gpu}}"
+    fi
+    podman build \
+        --file Containerfile.uki \
+        --build-arg=BASE={{registry}}/{{variant}}-base:{{version}} \
+        --build-arg=KERNEL={{registry}}/{{variant}}-kernel:{{version}} \
+        --build-arg=GPU_FAMILY={{gpu}} \
+        --build-arg=TOOLS={{signing_tools_container}} \
+        --tag {{registry}}/${repo}:{{version}} \
+        --tag {{registry}}/${repo}:{{release}} \
+        --volume $(pwd):/run/src \
         --security-opt=label=disable \
         --secret=id=secureboot_key,src=keys/db/db.key \
         --secret=id=secureboot_crt,src=keys/db/db.pem \

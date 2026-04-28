@@ -1,0 +1,156 @@
+# SPDX-FileCopyrightText: Timothée Ravier <tim@siosm.fr>
+# SPDX-License-Identifier: CC0-1.0
+
+ARG BASE=overridden
+ARG KERNEL=overriden
+ARG GPU_FAMILY=overriden
+ARG TOOLS=overridden
+
+FROM $KERNEL as kernel
+
+FROM $BASE as rootfs
+
+RUN <<EORUN
+set -euxo pipefail
+if [[ "${GPU_FAMILY}" == "amd" ]]; then
+    cat > "/usr/lib/dracut/dracut.conf.d/20-amd-only.conf" << 'EOF'
+    # Omit all GPU drivers and firmwares excepted those for AMD GPUs
+
+    # Exclude Intel drivers
+    omit_drivers+=" gma500 i915 xe "
+    # Exclude Intel firmwares
+    remove_items+=" /usr/lib/firmware/i915 /usr/lib/firmware/xe "
+
+    # Exclude NVIDIA drivers
+    omit_drivers+=" nouveau "
+    # Exclude NVIDIA firmwares
+    remove_items+=" /usr/lib/firmware/nvidia "
+
+    # Exclude other misc drivers
+    omit_drivers+=" ast gud hyperv_drm mgag200 st7571-i2c st7586 st7735r ssd130x vboxvideo vkms vmwgfx "
+    EOF
+elif [[ "${GPU_FAMILY}" == "intel" ]]; then
+    cat > "/usr/lib/dracut/dracut.conf.d/20-intel-only.conf" << 'EOF'
+    # Omit all GPU drivers and firmwares excepted those for Intel GPUs
+
+    # Exclude AMD drivers
+    omit_drivers+=" amdgpu amdxcp radeon "
+    # Exclude AMD firmwares
+    remove_items+=" /usr/lib/firmware/amdgpu /usr/lib/firmware/radeon "
+
+    # Exclude NVIDIA drivers
+    omit_drivers+=" nouveau "
+    # Exclude NVIDIA firmwares
+    remove_items+=" /usr/lib/firmware/nvidia "
+
+    # Exclude other misc drivers
+    omit_drivers+=" ast gud hyperv_drm mgag200 st7571-i2c st7586 st7735r ssd130x vboxvideo vkms vmwgfx "
+    EOF
+elif [[ "${GPU_FAMILY}" == "nvidia" ]]; then
+    cat > "/usr/lib/dracut/dracut.conf.d/20-nvidia-only.conf" << 'EOF'
+    # Omit all GPU drivers and firmwares excepted those for NVIDIA GPUs
+
+    # Exclude AMD drivers
+    omit_drivers+=" amdgpu amdxcp radeon "
+    # Exclude AMD firmwares
+    remove_items+=" /usr/lib/firmware/amdgpu /usr/lib/firmware/radeon "
+
+    # Exclude Intel drivers
+    omit_drivers+=" gma500 i915 xe "
+    # Exclude Intel firmwares
+    remove_items+=" /usr/lib/firmware/i915 /usr/lib/firmware/xe "
+
+    # Exclude other misc drivers
+    omit_drivers+=" ast gud hyperv_drm mgag200 st7571-i2c st7586 st7735r ssd130x vboxvideo vkms vmwgfx "
+    EOF
+else
+    # Generic case, keep the defaults
+    exit 0
+fi
+EORUN
+
+FROM rootfs as initrd
+
+RUN <<EORUN
+set -euxo pipefail
+kver=$(cd "/usr/lib/modules" && echo *)
+# Rebuild the initramfs now that dracut's configuration is complete
+dracut -vf --install "/etc/passwd /etc/group" "/initramfs" "$kver"
+EORUN
+
+FROM $TOOLS as sealed-uki
+
+# Copy the kernel and the initrd into the image to build the UKI
+COPY --from=kernel /vmlinuz /vmlinuz
+COPY --from=initrd /initramfs /initramfs
+
+RUN --mount=type=tmpfs,target=/run \
+    --mount=type=tmpfs,target=/tmp \
+    --mount=type=tmpfs,target=/var/tmp \
+    --mount=type=secret,id=secureboot_key \
+    --mount=type=secret,id=secureboot_crt \
+    --mount=type=bind,from=rootfs,src=/,target=/run/target,rw \
+    --mount=type=bind,target=/run/src,ro \
+    <<EORUN
+set -euxo pipefail
+
+target="/run/target"
+output="/boot/EFI/Linux"
+secrets="/run/secrets"
+
+# Find the kernel version (needed for output filename)
+kver=$(cd "${target}/usr/lib/modules" && echo *)
+
+# Baseline ukify options
+ukifyargs=(
+    --measure
+    --json pretty
+    --output "${output}/${kver}.efi"
+)
+
+# Signing options, we use sbsign by default
+ukifyargs+=(
+    --signtool sbsign
+    --secureboot-private-key "${secrets}/secureboot_key"
+    --secureboot-certificate "${secrets}/secureboot_crt"
+)
+
+# Baseline container ukify options
+containerukifyargs=(--rootfs "${target}")
+
+# Build the UKI using bootc container ukify
+# This computes the composefs digest, reads kargs from kargs.d, and invokes ukify
+# FIXME: Disabled until we get support for passing the kernel & initrd as parameters
+# FIXME: Manual flow below
+# bootc container ukify "${containerukifyargs[@]}" -- "${ukifyargs[@]}"
+
+# Compute the composefs digest from the mounted rootfs
+digest="$(bootc container compute-composefs-digest "${target}")"
+
+# Create command line
+{
+printf "composefs=${digest} rw rootflags=compress=zstd:1"
+# Debug options
+printf " rd.systemd.debug_shell systemd.debug_shell"
+# Workarounds
+printf " rd.systemd.mask=systemd-tpm2-setup-early.service"
+printf " systemd.mask=systemd-tpm2-setup-early.service"
+printf " systemd.mask=systemd-tpm2-setup.service"
+printf " systemd.mask=systemd-pcrphase.service"
+printf " systemd.mask=systemd-pcrproduct.service"
+printf "\n"
+} > /etc/kernel/cmdline
+
+# Generate and sign the UKI with the digest embedded
+ukify build \
+  --linux "/vmlinuz" \
+  --initrd "/initramfs" \
+  --uname="${kver}" \
+  --cmdline "@/etc/kernel/cmdline" \
+  --os-release "@${target}/usr/lib/os-release" \
+  "${ukifyargs[@]}"
+EORUN
+
+# Copy UKI to our final image
+FROM rootfs as final
+COPY --from=sealed-uki /boot/EFI/Linux /boot/EFI/Linux
