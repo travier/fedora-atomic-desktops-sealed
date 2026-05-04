@@ -5,73 +5,28 @@ ARG BASE=overridden
 ARG KERNEL=overriden
 ARG TOOLS=overridden
 
+# Capture scripts from the git repo
+FROM scratch as scripts
+COPY scripts /
+
 FROM $KERNEL as kernel
 
+# Write dracut config depending on the GPU familly selected for the initrd
 FROM $BASE as rootfs
-
 ARG GPU_FAMILY=overriden
+RUN --mount=type=bind,from=scripts,src=/,target=/run/scripts \
+    /run/scripts/dracut-config.sh
 
-RUN <<EORUN
-set -euxo pipefail
-
-if [[ "${GPU_FAMILY}" == "generic" ]]; then
-# Generic case, keep the defaults
-exit 0
-fi
-
-if [[ "${GPU_FAMILY}" != "amd" ]]; then
-cat > "/usr/lib/dracut/dracut.conf.d/20-omit-amd-gpu.conf" << 'EOF'
-# Exclude AMD drivers
-omit_drivers+=" amdgpu amdxcp radeon "
-# Exclude AMD firmwares
-remove_items+=" /usr/lib/firmware/amdgpu /usr/lib/firmware/radeon "
-EOF
-fi
-
-if [[ "${GPU_FAMILY}" != "intel" ]]; then
-cat > "/usr/lib/dracut/dracut.conf.d/20-omit-intel-gpu.conf" << 'EOF'
-# Exclude Intel drivers
-omit_drivers+=" gma500 i915 xe "
-# Exclude Intel firmwares
-remove_items+=" /usr/lib/firmware/i915 /usr/lib/firmware/xe "
-EOF
-fi
-
-if [[ "${GPU_FAMILY}" != "nvidia" ]]; then
-cat > "/usr/lib/dracut/dracut.conf.d/20-omit-nvidia-gpu.conf" << 'EOF'
-# Exclude NVIDIA drivers
-omit_drivers+=" nouveau "
-# Exclude NVIDIA firmwares
-remove_items+=" /usr/lib/firmware/nvidia "
-EOF
-fi
-
-cat > "/usr/lib/dracut/dracut.conf.d/20-omit-misc-gpu.conf" << 'EOF'
-# Exclude misc GPU drivers
-omit_drivers+=" ast gud hyperv_drm mgag200 st7571-i2c st7586 st7735r ssd130x vboxvideo vkms vmwgfx "
-EOF
-
-cat > "/usr/lib/dracut/dracut.conf.d/20-virt-modules.conf" << 'EOF'
-# Exclude virtualization support
-omit_dracutmodules+=" qemu virtiofs "
-EOF
-EORUN
-
-FROM rootfs as initrd
-
-RUN <<EORUN
-set -euxo pipefail
-kver=$(cd "/usr/lib/modules" && echo *)
 # Rebuild the initramfs now that dracut's configuration is complete
-dracut -vf --install "/etc/passwd /etc/group" "/initramfs" "$kver"
-EORUN
+FROM rootfs as initrd
+RUN --mount=type=bind,from=scripts,src=/,target=/run/scripts \
+    /run/scripts/rebuild-initrd.sh
 
+# Build the UKI
 FROM $TOOLS as sealed-uki
-
 # Copy the kernel and the initrd into the image to build the UKI
 COPY --from=kernel /vmlinuz /vmlinuz
 COPY --from=initrd /initramfs /initramfs
-
 RUN --mount=type=tmpfs,target=/run \
     --mount=type=tmpfs,target=/tmp \
     --mount=type=tmpfs,target=/var/tmp \
@@ -79,71 +34,9 @@ RUN --mount=type=tmpfs,target=/run \
     --mount=type=secret,id=secureboot_crt \
     --mount=type=bind,from=rootfs,src=/,target=/run/target,rw \
     --mount=type=bind,target=/run/src,ro \
-    <<EORUN
-set -euxo pipefail
+    --mount=type=bind,from=scripts,src=/,target=/run/scripts \
+    /run/scripts/uki.sh
 
-target="/run/target"
-output="/boot/EFI/Linux"
-secrets="/run/secrets"
-
-# Find the kernel version (needed for output filename)
-kver=$(cd "${target}/usr/lib/modules" && echo *)
-
-# Baseline ukify options
-ukifyargs=(
-    --measure
-    --json pretty
-    --output "${output}/${kver}.efi"
-)
-
-# Signing options, we use sbsign by default
-ukifyargs+=(
-    --signtool sbsign
-    --secureboot-private-key "${secrets}/secureboot_key"
-    --secureboot-certificate "${secrets}/secureboot_crt"
-)
-
-# Baseline container ukify options
-containerukifyargs=(--rootfs "${target}")
-
-# Build the UKI using bootc container ukify
-# This computes the composefs digest, reads kargs from kargs.d, and invokes ukify
-# FIXME: Disabled until we get support for passing the kernel & initrd as parameters
-# FIXME: Manual flow below
-# bootc container ukify "${containerukifyargs[@]}" -- "${ukifyargs[@]}"
-
-# Compute the composefs digest from the mounted rootfs
-digest="$(bootc container compute-composefs-digest "${target}")"
-
-# Create command line
-{
-# composefs digest and rw to default to a writable system
-printf "composefs=${digest} rw"
-# Enable btrfs compression for the root mount point
-printf " rootflags=compress=zstd:1"
-# Suppress console output and enable Plymouth
-printf " quiet rhgb"
-# Debug shell enabled in the initrd and final system
-printf " rd.systemd.debug_shell systemd.debug_shell"
-# Workarounds for TPM2 issue in systemd with some older TPM chips
-printf " rd.systemd.mask=systemd-tpm2-setup-early.service"
-printf " systemd.mask=systemd-tpm2-setup-early.service"
-printf " systemd.mask=systemd-tpm2-setup.service"
-printf " systemd.mask=systemd-pcrphase.service"
-printf " systemd.mask=systemd-pcrproduct.service"
-printf "\n"
-} > /etc/kernel/cmdline
-
-# Generate and sign the UKI with the digest embedded
-ukify build \
-  --linux "/vmlinuz" \
-  --initrd "/initramfs" \
-  --uname="${kver}" \
-  --cmdline "@/etc/kernel/cmdline" \
-  --os-release "@${target}/usr/lib/os-release" \
-  "${ukifyargs[@]}"
-EORUN
-
-# Copy UKI to our final image
+# Copy UKI to the final image
 FROM rootfs as final
 COPY --from=sealed-uki /boot/EFI/Linux /boot/EFI/Linux
