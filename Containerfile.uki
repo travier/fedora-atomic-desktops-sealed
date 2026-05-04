@@ -117,10 +117,15 @@ digest="$(bootc container compute-composefs-digest "${target}")"
 
 # Create command line
 {
-printf "composefs=${digest} rw rootflags=compress=zstd:1"
-# Debug options
+# composefs digest and rw to default to a writable system
+printf "composefs=${digest} rw"
+# Enable btrfs compression for the root mount point
+printf " rootflags=compress=zstd:1"
+# Suppress console output and enable Plymouth
+printf " quiet rhgb"
+# Debug shell enabled in the initrd and final system
 printf " rd.systemd.debug_shell systemd.debug_shell"
-# Workarounds
+# Workarounds for TPM2 issue in systemd with some older TPM chips
 printf " rd.systemd.mask=systemd-tpm2-setup-early.service"
 printf " systemd.mask=systemd-tpm2-setup-early.service"
 printf " systemd.mask=systemd-tpm2-setup.service"
