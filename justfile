@@ -1,14 +1,18 @@
 # SPDX-FileCopyrightText: Timothée Ravier <tim@siosm.fr>
 # SPDX-License-Identifier: CC0-1.0
 
-# Container registry to get the base images from
-base_registry := "quay.io/fedora-ostree-desktops"
+# Variants and the container registry location to get them
+# Just doesn't have a native dict type, but quoted bash dictionary works fine
+variant_repos := '(
+    [silverblue]="quay.io/fedora-ostree-desktops/silverblue"
+    [kinoite]="quay.io/fedora-ostree-desktops/kinoite"
+)'
 
 # Container registry where the images will be pushed
-registry := "quay.io/fedora-atomic-desktops-sealed"
+dest_registry := "quay.io/fedora-atomic-desktops-sealed"
 
 # Version of the container image to use as base
-version := "44.20260426.0"
+version := "44.20260504.0"
 
 # Major Fedora version used
 release := "44"
@@ -19,9 +23,9 @@ release := "44"
 systemd_boot_container := "localhost/systemd-boot:" + release
 
 # Container image with the tools for signing UKIs
-# Defaults to locally built container image. Uncomment to use pre-built image.
-# signing_tools_container := "quay.io/fedora-atomic-desktops-sealed/tools:" + release
-signing_tools_container := "localhost/tools:" + release
+# Defaults to pre-built image. Uncomment to use locally built container image.
+# signing_tools_container := "localhost/tools:" + release
+signing_tools_container := "quay.io/fedora-atomic-desktops-sealed/tools:" + release
 
 # How to connect to libvirt (either system or session)
 libvirt_uri := "qemu:///system"
@@ -64,12 +68,13 @@ build-tools:
 build variant:
     #!/bin/bash
     set -euo pipefail
+    declare -A variant_repos={{variant_repos}}
     podman build \
-        --build-arg=BASE={{base_registry}}/{{variant}}:{{version}} \
+        --build-arg=BASE=${variant_repos["{{variant}}"]}:{{version}} \
         --build-arg=SYSTEMDBOOT={{systemd_boot_container}} \
         --build-arg=TOOLS={{signing_tools_container}} \
-        --tag {{registry}}/{{variant}}:{{version}} \
-        --tag {{registry}}/{{variant}}:{{release}} \
+        --tag {{dest_registry}}/{{variant}}:{{version}} \
+        --tag {{dest_registry}}/{{variant}}:{{release}} \
         --skip-unused-stages=false \
         --volume $(pwd):/run/src \
         --security-opt=label=disable \
@@ -83,16 +88,18 @@ build variant:
 build-base variant:
     #!/bin/bash
     set -euo pipefail
+    declare -A variant_repos={{variant_repos}}
+
     podman build \
         --file Containerfile.kernel \
-        --build-arg=BASE={{base_registry}}/{{variant}}:{{version}} \
-        --tag {{registry}}/{{variant}}-kernel:{{version}} \
+        --build-arg=BASE=${variant_repos["{{variant}}"]}:{{version}} \
+        --tag {{dest_registry}}/{{variant}}-kernel:{{version}} \
         .
     podman build \
         --file Containerfile.base \
-        --build-arg=BASE={{base_registry}}/{{variant}}:{{version}} \
+        --build-arg=BASE=${variant_repos["{{variant}}"]}:{{version}} \
         --build-arg=SYSTEMDBOOT={{systemd_boot_container}} \
-        --tag {{registry}}/{{variant}}-base:{{version}} \
+        --tag {{dest_registry}}/{{variant}}-base:{{version}} \
         --skip-unused-stages=false \
         --volume $(pwd):/run/src \
         --security-opt=label=disable \
@@ -103,19 +110,21 @@ build-base variant:
 build-uki variant gpu="generic":
     #!/bin/bash
     set -euo pipefail
+
     if [[ "{{gpu}}" == "generic" ]]; then
         repo="{{variant}}"
     else
         repo="{{variant}}-{{gpu}}"
     fi
+
     podman build \
         --file Containerfile.uki \
-        --build-arg=BASE={{registry}}/{{variant}}-base:{{version}} \
-        --build-arg=KERNEL={{registry}}/{{variant}}-kernel:{{version}} \
+        --build-arg=BASE={{dest_registry}}/{{variant}}-base:{{version}} \
+        --build-arg=KERNEL={{dest_registry}}/{{variant}}-kernel:{{version}} \
         --build-arg=GPU_FAMILY={{gpu}} \
         --build-arg=TOOLS={{signing_tools_container}} \
-        --tag {{registry}}/${repo}:{{version}} \
-        --tag {{registry}}/${repo}:{{release}} \
+        --tag {{dest_registry}}/${repo}:{{version}} \
+        --tag {{dest_registry}}/${repo}:{{release}} \
         --volume $(pwd):/run/src \
         --security-opt=label=disable \
         --secret=id=secureboot_key,src=keys/db/db.key \
@@ -133,7 +142,7 @@ qcow2 variant:
         --bootloader=systemd \
         --format qcow2 \
         --disk-size 20G \
-        {{registry}}/{{variant}}:{{release}} \
+        {{dest_registry}}/{{variant}}:{{release}} \
         {{variant}}-{{version}}.qcow2
 
 # Move the QCOW2 image to libvirt image store
