@@ -10,6 +10,8 @@ COPY scripts /
 
 FROM $BASE as rootfs-base
 
+ARG TARGETARCH
+
 # General changes done to the base image
 RUN --mount=type=tmpfs,target=/run \
     --mount=type=tmpfs,target=/tmp \

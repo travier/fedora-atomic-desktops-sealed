@@ -60,6 +60,25 @@ dnf install -y "https://kojipkgs.fedoraproject.org//packages/systemd-boot/261~rc
 # Replace the unsigned built with the signed one
 cp -a /usr/lib/systemd/boot/efi/systemd-bootx64.efi{.signed,}
 
+# prepare directory for image-builder configuration
+mkdir -p "/usr/lib/image-builder/bootc"
+
+# set up an argument for the root type UUID
+GPT_ROOT_TYPE=""
+if [[ "${TARGETARCH}" == "amd64" ]]; then
+    GPT_ROOT_TYPE="4f68bce3-e8cd-4db1-96e7-fbcaf984b709"
+elif [[ "${TARGETARCH}" == "arm64" ]]; then
+    GPT_ROOT_TYPE="b0e01050-ee5f-4390-949a-9101b17104e9"
+elif [[ "${TARGETARCH}" == "s390x" ]]; then
+    GPT_ROOT_TYPE="5eead9a9-fe09-4a1e-a1d7-520d00531306"
+elif [[ "${TARGETARCH}" == "ppc64le" ]]; then
+    GPT_ROOT_TYPE="c31c45e6-3f39-412e-80fb-4809c4980599"
+elif [[ "${TARGETARCH}" == "riscv64" ]]; then
+    GPT_ROOT_TYPE="72ec70a6-cf74-40e6-bd49-4bda08e8f224"
+else
+    exit 1
+fi
+
 if rpm -q --quiet fedora-release-identity-basic; then
 
 # bootc base iamges
@@ -69,19 +88,72 @@ cat > "/usr/lib/bootc/install/80-rootfs.toml" << 'EOF'
 type = "ext4"
 EOF
 
+# ext4 root for base
+cat > "/usr/lib/image-builder/bootc/disk.yaml" << EOF
+mount_configuration: "none"
+partition_table:
+  type: "gpt"
+  partitions:
+    - size: "2 GiB"
+      type: "c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
+      payload_type: "filesystem"
+      payload:
+        type: "vfat"
+        # wrong mountpoint, but isn't actually used; works around a
+        # bug in image-builder:
+        mountpoint: "/boot/efi"
+        label: "ESP"
+    - size: "3 GiB"
+      # type is architecture dependent, image-builder should auto-assign
+      # based on the architecture but for now we append based on TARGETARCH
+      type: "${GPT_ROOT_TYPE}"
+      payload_type: "filesystem"
+      payload:
+        type: "ext4"
+        label: "root"
+        mountpoint: "/"
+EOF
+
 else
 
 # All Atomic Desktops
 cat > "/usr/lib/bootc/kargs.d/10-rootfs.toml" << 'EOF'
 # Mount the root filesystem read-write
 # Enable btrfs compression
-kargs = ["rw", "rootflags=compress=zstd:1"]
+# Automatically mount the root subvolume
+kargs = ["rw", "rootflags=compress=zstd:1,subvol=root"]
 EOF
 
 cat > "/usr/lib/bootc/install/80-rootfs.toml" << 'EOF'
 # Default to btrfs
 [install.filesystem.root]
 type = "btrfs"
+EOF
+
+# btrfs root for atomic desktops
+cat > "/usr/lib/image-builder/bootc/disk.yaml" << EOF
+mount_configuration: "none"
+partition_table:
+  type: "gpt"
+  partitions:
+    - size: "2 GiB"
+      type: "c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
+      payload_type: "filesystem"
+      payload:
+        type: "vfat"
+        # wrong mountpoint, but isn't actually used; works around a
+        # bug in `image-builder`:
+        mountpoint: "/boot/efi"
+        label: "ESP"
+    - size: "3 GiB"
+      # type is architecture dependent, `image-builder` should auto-assign
+      # based on the architecture but for now we append based on TARGETARCH
+      type: "${GPT_ROOT_TYPE}"
+      payload_type: "btrfs"
+      payload:
+        subvolumes:
+          - name: "root"
+            mountpoint: "/"
 EOF
 
 fi
@@ -138,6 +210,7 @@ EOF
 
 # Prepare folders in /boot
 mkdir -p /boot/EFI/Linux
+
 
 ###############################################################################
 # Changes for development go here

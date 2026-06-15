@@ -43,7 +43,8 @@ digest="$(bootc container compute-composefs-digest "${target}")"
 printf "composefs=${digest} rw"
 if [[ $(grep -c "zstd" "${target}/usr/lib/bootc/kargs.d/10-rootfs.toml") == 1 ]]; then
 # Enable btrfs compression for the root mount point
-printf " rootflags=compress=zstd:1"
+# Automatically mount the root subvolume
+printf " rootflags=compress=zstd:1,subvol=root"
 fi
 # Suppress console output and enable Plymouth
 printf " quiet rhgb"
