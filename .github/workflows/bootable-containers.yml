@@ -60,7 +60,7 @@ jobs:
 
     steps:
       - name: "Checkout repo"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
         # so we pull the right image, for, for example, the tools images.
       - name: Set Architecture Environment Variable
