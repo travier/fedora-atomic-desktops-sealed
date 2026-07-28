@@ -6,4 +6,7 @@ set -euxo pipefail
 
 kver=$(cd "/usr/lib/modules" && echo *)
 
+# Workaround for secureblue
+mkdir -p "/var/tmp"
+
 dracut -vf --install "/etc/passwd /etc/group" "/initramfs" "$kver"
