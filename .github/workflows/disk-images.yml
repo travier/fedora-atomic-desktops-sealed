@@ -98,7 +98,7 @@ jobs:
         uses: oras-project/setup-oras@v2
 
       - name: "Setup cosign"
-        uses: sigstore/cosign-installer@v3.10.0
+        uses: sigstore/cosign-installer@v3.10.1
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
 
       - name: "Login to Container Registry (quay.io)"
