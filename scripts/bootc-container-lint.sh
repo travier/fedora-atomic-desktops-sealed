@@ -9,12 +9,16 @@ source /etc/os-release
 declare -a args=()
 
 if [[ "${NAME}" == "secureblue" ]]; then
-    args+=("--skip" "nonempty-run-tmp")
+    args+=(
+        "--skip" "nonempty-run-tmp"
+    )
 fi
 
 if [[ "${NAME}" == "Bazzite" ]]; then
-    args+=("--skip" "nonempty-boot"
-           "--skip" "sysusers")
+    args+=(
+        "--skip" "nonempty-boot"
+        "--skip" "sysusers"
+    )
 fi
 
 bootc container lint --fatal-warnings --no-truncate "${args[@]}"
