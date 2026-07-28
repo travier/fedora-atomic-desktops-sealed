@@ -147,16 +147,11 @@ Reboot to give it a try.
 
 ## How to build your own
 
-### Dependencies for building
+### Containers
 
-- podman
-- [bcvk](https://github.com/bootc-dev/bcvk) (only v0.10.0 tested as working right now)
-  - See: <https://github.com/bootc-dev/bcvk/issues/234>
-- [virt-fw-vars](https://github.com/rhuefi/qemu-ovmf-secureboot) (`python3-virt-firmware` on Fedora)
+Start with building a sealed container.
 
-We will be able to use `bcvk` more once <https://github.com/bootc-dev/bcvk/issues/237> is fixed.
-
-### Steps
+#### Steps
 
 - Generate keys for signing with Secure Boot (using [sbctl](https://github.com/foxboron/sbctl)):
 
@@ -176,6 +171,45 @@ just build-tools
 just build silverblue
 just build kinoite
 ```
+
+### Disk Images
+
+After you have the container built you can continue with turning it into a disk image. We recommend using [image-builder](https://github.com/osbuild/image-builder) as it supports many output formats but you can also use [bcvk](.
+
+There are a few ways to build disk images, either through [image-builder](https://github.com/osbuild/image-builder) or alternatively through [bcvk](https://github.com/bootc-dev/bcvk).
+
+#### `image-builder`
+
+##### Dependencies
+
+- podman
+- `image-builder`, either as a package; or as its container.
+- [virt-fw-vars](https://github.com/rhuefi/qemu-ovmf-secureboot) (`python3-virt-firmware` on Fedora)
+
+##### Steps
+
+Have your container built and available either locally or on a registry, then run `image-builder`:
+
+```
+sudo image-builder build --bootc-ref quay.io/fedora-atomic-desktops-sealed/bootc-rawhide:latest qcow2
+```
+
+Various output formats are available; amongst them `qcow2`, `ami`, `ova`, `raw` etc.
+
+Note that blueprint customizations are generally disabled for sealed container images at the moment; there is tight coupling between filesystem contents, partition layout, and the kernel arguments in the UKI. We might enable a subset of customizations [in the future](https://github.com/osbuild/image-builder/issues/2560).
+
+#### `bcvk`
+
+Using the bootc virtualization toolkit.
+
+#### Dependencies
+
+- podman
+- [bcvk](https://github.com/bootc-dev/bcvk) (only v0.10.0 tested as working right now)
+  - See: <https://github.com/bootc-dev/bcvk/issues/234>
+- [virt-fw-vars](https://github.com/rhuefi/qemu-ovmf-secureboot) (`python3-virt-firmware` on Fedora)
+
+We will be able to use `bcvk` more once <https://github.com/bootc-dev/bcvk/issues/237> is fixed.
 
 - Install the container image to a QCOW2 disk image:
 
@@ -204,7 +238,7 @@ just libvirt silverblue
 just libvirt kinoite
 ```
 
-### UKI Addons
+#### UKI Addons
 
 The kernel command line is part of the UKI and can not be changed as it is signed.
 You can build a UKI addon to add kernel command line arguments without having to rebuild the UKI.
