@@ -10,6 +10,8 @@ declare -a args=()
 
 if [[ "${NAME}" == "secureblue" ]]; then
     args+=(
+        "--skip" "etc-usretc"
+        "--skip" "nonempty-boot"
         "--skip" "nonempty-run-tmp"
     )
 fi
