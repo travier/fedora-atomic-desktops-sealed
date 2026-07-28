@@ -72,7 +72,7 @@ jobs:
           if [[ -n "${VERSION}" ]]; then
             version="${VERSION}"
           else
-            version="$(date '+%Y%m%d')"
+            version="$(date '+%Y%m%d').0"
           fi
           echo "Using version: ${version}"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
