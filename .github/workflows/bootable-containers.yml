@@ -84,7 +84,7 @@ jobs:
           SB_CRT: ${{ secrets.SB_CRT }}
 
       - name: "Build kernel container image"
-        uses: redhat-actions/buildah-build@v2
+        uses: redhat-actions/buildah-build@v3
         with:
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}-kernel
           tags: |
@@ -96,7 +96,7 @@ jobs:
             BASE=${{ matrix.image_url }}:${{ matrix.tag }}
 
       - name: "Build base container image"
-        uses: redhat-actions/buildah-build@v2
+        uses: redhat-actions/buildah-build@v3
         with:
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}-base
           tags: |
@@ -112,7 +112,7 @@ jobs:
             --volume /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}:/run/src
 
       - name: "Build Generic UKI container image"
-        uses: redhat-actions/buildah-build@v2
+        uses: redhat-actions/buildah-build@v3
         with:
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}
           tags: |
@@ -132,7 +132,7 @@ jobs:
             --secret=id=secureboot_crt,src=/tmp/keys/crt
 
       - name: "Build Intel UKI container image"
-        uses: redhat-actions/buildah-build@v2
+        uses: redhat-actions/buildah-build@v3
         with:
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}-intel
           tags: |
@@ -152,7 +152,7 @@ jobs:
             --secret=id=secureboot_crt,src=/tmp/keys/crt
 
       - name: "Build AMD UKI container image"
-        uses: redhat-actions/buildah-build@v2
+        uses: redhat-actions/buildah-build@v3
         with:
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}-amd
           tags: |
@@ -172,7 +172,7 @@ jobs:
             --secret=id=secureboot_crt,src=/tmp/keys/crt
 
       - name: "Build NVIDIA UKI container image"
-        uses: redhat-actions/buildah-build@v2
+        uses: redhat-actions/buildah-build@v3
         with:
           image: ${{ env.REPO_NAME }}/${{ matrix.variant }}-nvidia
           tags: |
