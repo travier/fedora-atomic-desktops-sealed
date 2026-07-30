@@ -67,7 +67,7 @@ jobs:
             RELEASE=${{ matrix.release }}
 
       - name: "Push to Container Registry (ghcr.io)"
-        uses: redhat-actions/push-to-registry@v2
+        uses: redhat-actions/push-to-registry@v3
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         with:
           registry: ${{ env.REGISTRY_GHCR }}
@@ -77,7 +77,7 @@ jobs:
           tags: ${{ matrix.release }}-x86_64
 
       - name: "Push to Container Registry (quay.io)"
-        uses: redhat-actions/push-to-registry@v2
+        uses: redhat-actions/push-to-registry@v3
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         with:
           registry: ${{ env.REGISTRY_QUAY }}
@@ -108,7 +108,7 @@ jobs:
   #           RELEASE=${{ matrix.release }}
 
   #     - name: "Push to Container Registry"
-  #       uses: redhat-actions/push-to-registry@v2
+  #       uses: redhat-actions/push-to-registry@v3
   #       id: "push"
   #       if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
   #       with:
@@ -148,7 +148,7 @@ jobs:
           RELEASE: ${{ matrix.release }}
 
       - name: "Push to Container Registry (ghcr.io)"
-        uses: redhat-actions/push-to-registry@v2
+        uses: redhat-actions/push-to-registry@v3
         id: "push"
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         with:
@@ -190,7 +190,7 @@ jobs:
           RELEASE: ${{ matrix.release }}
 
       - name: "Push to Container Registry (quay.io)"
-        uses: redhat-actions/push-to-registry@v2
+        uses: redhat-actions/push-to-registry@v3
         id: push_quay_io
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         with:
