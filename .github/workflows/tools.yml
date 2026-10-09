@@ -129,7 +129,7 @@ jobs:
         release: ['44', '45']
     steps:
       - name: "Login to Container Registry (ghcr.io)"
-        uses: redhat-actions/podman-login@v1
+        uses: redhat-actions/podman-login@v2
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         with:
           registry: ${{ env.REGISTRY_GHCR }}
@@ -171,7 +171,7 @@ jobs:
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
 
       - name: "Login to Container Registry (quay.io)"
-        uses: redhat-actions/podman-login@v1
+        uses: redhat-actions/podman-login@v2
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         with:
           registry: ${{ env.REGISTRY_QUAY }}
