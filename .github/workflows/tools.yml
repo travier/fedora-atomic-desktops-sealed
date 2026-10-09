@@ -41,7 +41,7 @@ concurrency:
 
 jobs:
   build-x86_64:
-    runs-on: "ubuntu-24.04"
+    runs-on: "ubuntu-26.04"
     strategy:
       fail-fast: false
       matrix:
@@ -87,7 +87,7 @@ jobs:
           tags: ${{ matrix.release }}-x86_64
 
   # build-aarch64:
-  #   runs-on: "ubuntu-24.04-arm"
+  #   runs-on: "ubuntu-26.04-arm"
   #   strategy:
   #     fail-fast: false
   #     matrix:
@@ -119,7 +119,7 @@ jobs:
   #         tags: ${{ matrix.release }}-aarch64
 
   merge:
-    runs-on: "ubuntu-24.04"
+    runs-on: "ubuntu-26.04"
     needs:
       - "build-x86_64"
       # - "build-aarch64"
