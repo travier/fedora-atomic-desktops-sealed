@@ -200,7 +200,7 @@ jobs:
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
 
       - name: "Push generic image to Container Registry (ghcr.io)"
-        uses: redhat-actions/push-to-registry@v2
+        uses: redhat-actions/push-to-registry@v3
         id: push
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         with:
@@ -213,7 +213,7 @@ jobs:
               ${{ matrix.fedora_release }}.${{ needs.generate-matrix.outputs.version }}
 
       - name: "Push Intel image to Container Registry (ghcr.io)"
-        uses: redhat-actions/push-to-registry@v2
+        uses: redhat-actions/push-to-registry@v3
         id: push_intel
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         with:
@@ -226,7 +226,7 @@ jobs:
               ${{ matrix.fedora_release }}.${{ needs.generate-matrix.outputs.version }}
 
       - name: "Push AMD image to Container Registry (ghcr.io)"
-        uses: redhat-actions/push-to-registry@v2
+        uses: redhat-actions/push-to-registry@v3
         id: push_amd
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         with:
@@ -239,7 +239,7 @@ jobs:
               ${{ matrix.fedora_release }}.${{ needs.generate-matrix.outputs.version }}
 
       - name: "Push NVIDIA image to Container Registry (ghcr.io)"
-        uses: redhat-actions/push-to-registry@v2
+        uses: redhat-actions/push-to-registry@v3
         id: push_nvidia
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         with:
@@ -292,7 +292,7 @@ jobs:
           password: ${{ secrets.BOT_SECRET }}
 
       - name: "Push generic image to Container Registry (quay.io)"
-        uses: redhat-actions/push-to-registry@v2
+        uses: redhat-actions/push-to-registry@v3
         id: push_quay_io
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         with:
@@ -305,7 +305,7 @@ jobs:
               ${{ matrix.fedora_release }}.${{ needs.generate-matrix.outputs.version }}
 
       - name: "Push Intel image to Container Registry (quay.io)"
-        uses: redhat-actions/push-to-registry@v2
+        uses: redhat-actions/push-to-registry@v3
         id: push_quay_io_intel
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         with:
@@ -318,7 +318,7 @@ jobs:
               ${{ matrix.fedora_release }}.${{ needs.generate-matrix.outputs.version }}
 
       - name: "Push AMD image to Container Registry (quay.io)"
-        uses: redhat-actions/push-to-registry@v2
+        uses: redhat-actions/push-to-registry@v3
         id: push_quay_io_amd
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         with:
@@ -331,7 +331,7 @@ jobs:
               ${{ matrix.fedora_release }}.${{ needs.generate-matrix.outputs.version }}
 
       - name: "Push NVIDIA image to Container Registry (quay.io)"
-        uses: redhat-actions/push-to-registry@v2
+        uses: redhat-actions/push-to-registry@v3
         id: push_quay_io_nvidia
         if: (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         with:
